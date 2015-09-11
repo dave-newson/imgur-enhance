@@ -10,109 +10,104 @@
 // @grant        none
 // ==/UserScript==
 
-/**
- * Singleton container for imgurEnhance modules
- * Just makes loading and debugging easier.
- * @type {*|{}}
- */
-var imgurEnhance = imgurEnhance || {
-    modules: [],
+(function(window, $, imgurEnhance) {
+
+    // Stop TamperMonkey shitting itself
+    if ($ === undefined) {
+        return;
+    }
 
     /**
-     * Add a module for document-ready execution
-     * @param module
+     * Singleton container for imgurEnhance modules
+     * Just makes loading and debugging easier.
+     * @type {*|{}}
      */
-    addModule: function(module) {
-        this.modules.push(module);
-    },
+    imgurEnhance = imgurEnhance || {
+        modules: [],
 
-    /**
-     * Initialise all registered modules
-     */
-    init: function() {
-        // Init all modules
-        for (var k in this.modules) {
-            this.modules[k].init();
+        /**
+         * Add a module for document-ready execution
+         * @param module
+         */
+        addModule: function (module) {
+            this.modules.push(module);
+        },
+
+        /**
+         * Initialise all registered modules
+         */
+        init: function () {
+            // Init all modules
+            for (var k in this.modules) {
+                this.modules[k].init();
+            }
         }
-    }
-};
-
-/**
- * @Class imgurEnhance
- * Utility local storage helper
- */
-function ImgurEnhanceUtilLocalStorage() {
-    // Load data
-    this.loadData();
-};
-ImgurEnhanceUtilLocalStorage.prototype = {
-
-    data: {},
-    storageKey: 'imgurEnhance',
+    };
 
     /**
-     * Load from local storage
+     * @Class imgurEnhance
+     * Utility local storage helper
      */
-    loadData: function() {
-        this.data = $.extend(this.data, JSON.parse(localStorage.getItem(this.storageKey)));
-    },
+    function ImgurEnhanceUtilLocalStorage() {
+        // Load data
+        this.loadData();
+    };
+    ImgurEnhanceUtilLocalStorage.prototype = {
+
+        data: {},
+        storageKey: 'imgurEnhance',
+
+        /**
+         * Load from local storage
+         */
+        loadData: function () {
+            this.data = $.extend(this.data, JSON.parse(localStorage.getItem(this.storageKey)));
+        },
+
+        /**
+         * Write to local storage
+         */
+        saveData: function () {
+            localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+        },
+    };
 
     /**
-     * Write to local storage
+     * @Class ImgurEnhanceUtilStyleSheet
+     * Utility Stylesheet builder helper
      */
-    saveData: function() {
-        localStorage.setItem(this.storageKey, JSON.stringify(this.data));
-    },
-};
+    ImgurEnhanceUtilStyleSheet = function () {
+        // Nothing
+    };
+    ImgurEnhanceUtilStyleSheet.prototype = {
 
-/**
- * @Class ImgurEnhanceUtilStyleSheet
- * Utility Stylesheet builder helper
- */
-ImgurEnhanceUtilStyleSheet = function() {
-    // Nothing
-}
-ImgurEnhanceUtilStyleSheet.prototype = {
-    
-    /**
-     * Create a stylesheet container we can append to
-     */
-    createStyleSheet: function() {
-        // Create the <style> tag
-        var style = document.createElement("style");
+        /**
+         * Create a stylesheet container we can append to
+         */
+        createStyleSheet: function () {
+            // Create the <style> tag
+            var style = document.createElement("style");
 
-        // WebKit hack :(
-        style.appendChild(document.createTextNode(""));
+            // WebKit hack :(
+            style.appendChild(document.createTextNode(""));
 
-        // Add the <style> element to the page
-        document.head.appendChild(style);
-        return style.sheet;
-    }
-};
-
-/**
- * Initialise registered modules on document ready
- */
-$(function() {
-    imgurEnhance.init();
-});
-
-
-/**
- * Imgur Enhance: Seent
- * - Images that have been viewed are dimmed, and an icon is added
- * - Persists history of viewed item hashes for 5 days via localstorage.
- */
-;(function($, imgurEnhance) {
+            // Add the <style> element to the page
+            document.head.appendChild(style);
+            return style.sheet;
+        }
+    };
 
     /**
-     * Imgur Enhance Seent: Add "seen it" functionality
+     * Imgur Enhance: Seent
+     * - Images that have been viewed are dimmed, and an icon is added
+     * - Persists history of viewed item hashes for 5 days via localstorage.
      * @Class ImgurEnhanceSeent
      */
     function ImgurEnhanceSeent() {
         // Initialise local storage
         ImgurEnhanceUtilLocalStorage.call(this);
     }
+
     ImgurEnhanceSeent.prototype = $.extend(new ImgurEnhanceUtilLocalStorage(), new ImgurEnhanceUtilStyleSheet(), {
 
         storageKey: 'imgurEnhance.seent',
@@ -120,19 +115,23 @@ $(function() {
         lifetime: 5 * 86400,
         data: {
             visited: {},
+            seentHide: false,
+        },
+        elements: {
+            $seentHideButton: null
         },
 
         /**
          * Initialise seent
          */
-        init: function() {
+        init: function () {
             var sheet = this.createStyleSheet();
 
             // FP Img
             sheet.insertRule("#imagelist .seent { border-color: #2b2b2b; background: #000000; }");
             sheet.insertRule("#imagelist .seent img { opacity: 0.33; }");
             sheet.insertRule("#imagelist .seent:hover img { opacity: 1; }");
-            
+
             // FP Icon
             sheet.insertRule("#imagelist .seent:hover .seent-icon { display:none; }");
             sheet.insertRule("#imagelist .seent .seent-icon { display: block; position:absolute; right: 0px; bottom: 0px; width: 34px; height: 34px; background: url('http://s.imgur.com/images/site-sprite.png') transparent no-repeat; background-position: -250px -184px; }");
@@ -140,6 +139,10 @@ $(function() {
             // Sidebar Img
             sheet.insertRule("#side-gallery .nav-image.seent .image-thumb { opacity: 0.33; }");
             sheet.insertRule("#side-gallery .nav-image.seent:hover .image-thumb, #side-gallery .nav-image.seent.selected .image-thumb { opacity: 1; }");
+
+            // Seent hide button
+            sheet.insertRule("#content .sort-options #seent-hide span { display: inline-block; width: 25px; height: 25px; image-rendering: optimizeQuality; -ms-interpolation-mode: nearest-neighbor; background: url(http://s.imgur.com/images/site-sprite.png) -256px -186px no-repeat transparent; }");
+            sheet.insertRule("#content .sort-options .active { opacity: 0.9; }");
 
             // Seent daily grouping key
             // timestamp @ start of day
@@ -150,11 +153,16 @@ $(function() {
             // Seent tasks: Prune old, read page, attach display
             this.pruneSeent();
             this.readSeent();
-            this.attachSeent();
+            this.attachGlobalSeent();
+            this.attachGallerySeent();
+            this.attachInsideGallerySeent();
+
+            // Apply the seent-hide state
+            this.toggleSeentHide(this.data.seentHide);
         },
 
         /**
-         * Prune the Seent list and scrap old stuff 
+         * Prune the Seent list and scrap old stuff
          */
         pruneSeent: function () {
             // Check all blocks
@@ -184,21 +192,74 @@ $(function() {
             // Add hash if not exists
             if (this.data.visited[this.currentKey].indexOf(imgur._.hash) == -1) {
                 this.data.visited[this.currentKey].push(imgur._.hash);
-                
+
                 // Update local storage
                 this.saveData();
             }
         },
 
         /**
-         * Attach Seent events and features
+         * Attach Seent elements to the global page (static) items.
          */
-        attachSeent: function () {
+        attachGlobalSeent: function () {
+            var _this = this;
 
+            // Event: Add seent on click of FP images
+            // Attach to static #content
+            $('#content').on('click', '.post', function () {
+                $(this).addClass('seent');
+            });
+
+            // Event: Add seent on sidebar click
+            // Attach to static #side-gallery
+            $('#side-gallery').on('click', '.nav-image[data-hash]', function () {
+                $(this).addClass('seent');
+            });
+
+            // Event: Scrollin' on the FP
+            Imgur.Gallery.getInstance()._.emitter.on('new gallery page', this, function () {
+                this.attachGallerySeent();
+            });
+
+            // Event: Changing view image
+            Imgur.Gallery.getInstance()._.emitter.on('current image updated', this, function () {
+                this.readSeent();
+                this.attachInsideGallerySeent();
+            });
+
+            // Event: Scrollin' sidebar on inside gallery
+            Imgur.Gallery.getInstance()._.emitter.on('pageLoad', this, function () {
+                this.attachInsideGallerySeent();
+            });
+
+            // Attach seent toggle to homepage:
+            $('#content .sort-options ul').each(function() {
+
+                // Create seent button with click handler
+                $seentHideItem = $('<li><a href="javascript:void(0)" id="seent-hide" class="title-n" original-title="hide seen images"><span></span></a></li>');
+                _this.elements.$seentHideButton = $seentHideItem.find('a');
+
+                // Event: On click seent hide, toggle state
+                _this.elements.$seentHideButton.on('click', function() {
+                    // Toggle button and execute hide
+                    _this.toggleSeentHide();
+                });
+
+                // Add to start of Sort Orders list
+                $sortOptionsList = $(this);
+                $sortOptionsList.prepend($seentHideItem);
+            });
+        },
+
+        /**
+         * Attach Seent elements to gallery
+         * Note: May be called multiple times
+         */
+        attachGallerySeent: function () {
             var _this = this;
 
             // On Load: Attach seen styles on FP
-            $('.post').each(function () {
+            $('.post').not('.seent').each(function () {
                 var $post = $(this);
 
                 // Check each date block
@@ -207,14 +268,17 @@ $(function() {
                     $post.append('<span class="seent-icon"></span>');
                 }
             });
+        },
 
-            // Event: Add seent on click of FP images
-            $('.post').on('click', function () {
-                $(this).addClass('seent');
-            });
+        /**
+         * Attach Seent to inside-gallery items
+         * On the right sidebar nav.
+         */
+        attachInsideGallerySeent: function () {
+            var _this = this;
 
             // On Load: Attach seen styles on sidebar nav
-            $('#side-gallery .nav-image[data-hash]').each(function () {
+            $('#side-gallery .nav-image[data-hash]').not('.seent').each(function () {
                 var $link = $(this);
                 var hash = $link.attr('data-hash');
 
@@ -222,11 +286,6 @@ $(function() {
                 if (_this.isVisited(hash)) {
                     $link.addClass('seent');
                 }
-            });
-
-            // Event: Add seent on sidebar click
-            $('#side-gallery .nav-image[data-hash]').click(function () {
-                $(this).addClass('seent');
             });
         },
 
@@ -240,6 +299,25 @@ $(function() {
                 }
             }
             return false;
+        },
+
+        /**
+         * Hide or unhide all seent items
+         * @param {bool} forceHidden
+         */
+        toggleSeentHide: function(forceHidden) {
+
+            // Get state
+            $seentListItem = this.elements.$seentHideButton.parent();
+            state = (forceHidden !== undefined) ? forceHidden : !$seentListItem.hasClass('active');
+
+            // Apply state
+            $seentListItem.toggleClass('active', state);
+            $('.seent').toggle(!state);
+
+            // Persist state
+            this.data.seentHide = state;
+            this.saveData();
         }
     });
 
@@ -248,6 +326,11 @@ $(function() {
      */
     imgurEnhance.addModule(new ImgurEnhanceSeent());
 
-})(jQuery, imgurEnhance);
+    /**
+     * Initialise registered modules on document ready
+     */
+    $(function () {
+        imgurEnhance.init();
+    });
 
-
+})(window, window.jQuery, window.imgurEnhance);
