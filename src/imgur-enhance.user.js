@@ -4,8 +4,10 @@
 // @version      0.1
 // @description  Enhance Imgur with some hacked in user features because we're impatient people
 // @author       Dave Newson
-// @include      http://imgur.com
-// @include      http://imgur.com/*
+// @include      *://imgur.com
+// @include      *://imgur.com/*
+// @include      *.imgur.com
+// @include      *.imgur.com/*
 // @run-at       document-end
 // @grant        none
 // ==/UserScript==
@@ -69,7 +71,7 @@
          */
         saveData: function () {
             localStorage.setItem(this.storageKey, JSON.stringify(this.data));
-        },
+        }
     };
 
     /**
@@ -236,7 +238,7 @@
             $('#content .sort-options ul').each(function() {
 
                 // Create seent button with click handler
-                $seentHideItem = $('<li><a href="javascript:void(0)" id="seent-hide" class="title-n" original-title="hide seen images"><span></span></a></li>');
+                $seentHideItem = $('<li><a href="javascript:void(0)" id="seent-hide" title="Hide seen images"><span></span></a></li>');
                 _this.elements.$seentHideButton = $seentHideItem.find('a');
 
                 // Event: On click seent hide, toggle state
@@ -303,7 +305,7 @@
 
         /**
          * Hide or unhide all seent items
-         * @param {bool} forceHidden
+         * @param {boolean} forceHidden
          */
         toggleSeentHide: function(forceHidden) {
 
@@ -325,6 +327,8 @@
      * Add the module for init
      */
     imgurEnhance.addModule(new ImgurEnhanceSeent());
+
+
 
     /**
      * Initialise registered modules on document ready
