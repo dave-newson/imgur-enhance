@@ -234,14 +234,30 @@
 
                     // FP Icon
                     "#imagelist .seent:hover .seent-icon { display:none; }",
-                    "#imagelist .seent .seent-icon { display: block; position:absolute; right: 0px; bottom: 0px; width: 34px; height: 34px; background: url('http://s.imgur.com/images/site-sprite.png') transparent no-repeat; background-position: -250px -184px; }",
+                    "#imagelist .seent .seent-icon { " +
+                    "   display: block;" +
+                    "   position:absolute;" +
+                    "   right: 0px; bottom: 0px;" +
+                    "   width: 34px; height: 34px;" +
+                    "   background: url('http://s.imgur.com/images/site-sprite.png') transparent no-repeat;" +
+                    "   background-position: -250px -184px;" +
+                    "}",
 
                     // Sitebar Img
                     "#side-gallery .nav-image.seent .image-thumb { opacity: 0.33; }",
-                    "#side-gallery .nav-image.seent:hover .image-thumb, #side-gallery .nav-image.seent.selected .image-thumb { opacity: 1; }",
+                    "#side-gallery .nav-image.seent:hover .image-thumb," +
+                    "#side-gallery .nav-image.seent.selected .image-thumb {" +
+                    "   opacity: 1;" +
+                    "}",
 
                     // Seent hide
-                    "#content .sort-options #seent-hide span { display: inline-block; width: 25px; height: 25px; image-rendering: optimizeQuality; -ms-interpolation-mode: nearest-neighbor; background: url(http://s.imgur.com/images/site-sprite.png) -256px -186px no-repeat transparent; }",
+                    "#content .sort-options #seent-hide span {" +
+                    "   display: inline-block;" +
+                    "   width: 25px; height: 25px;" +
+                    "   image-rendering: optimizeQuality;" +
+                    "   -ms-interpolation-mode: nearest-neighbor;" +
+                    "   background: url(http://s.imgur.com/images/site-sprite.png) -256px -186px no-repeat transparent;" +
+                    "}",
                     "#content .sort-options .active { opacity: 0.9; }"
                 ];
 
@@ -409,13 +425,164 @@
         Class.addSingleton(ImgurEnhance.AlwaysBleed);
 
         /**
+         * Favourite Folders: Because jesus christ.
+         * - Adds folder button to sidebar menu
+         * - Tramples on the Favourites page
+         * - Adds UI to the "Favourite" click, which lets you pick-a-folder!
+         * - Uses local storage to persist your folder sets.
+         */
+        Namespace('ImgurEnhance.FavouriteFolders');
+        ImgurEnhance.FavouriteFolders = Class.extend({
+
+            styleSheet: null,
+
+            /** @var {object} Html bits */
+            tpl: {
+                menuSplit: '<div class="split"></div>',
+                foldersButton: '' +
+                    '<div class="textbox half half-second button folders">' +
+                    '   <h2>Folders</h2>' +
+                    '   <div class="active"></div>' +
+                    '</div>',
+                foldersUserNav: '' +
+                    '<li>' +
+                    '   <a href="//imgur.com/account/favorites#folders">folders</a>' +
+                    '</li>'
+            },
+
+            /** @var {object} elements */
+            el: {
+                $favouritesButton: null,
+                $foldersButton: null,
+                $foldersUserNav: null,
+            },
+
+            /** @var {object} Routing vars */
+            routes: {
+                folders: {
+                    regex: '(\/.*)?\/favorites(\/.*)?',
+                    fragment: 'folders'
+                }
+            },
+
+            fragment: 'folders',
+            isFoldersView: false,
+
+            /**
+             * Constructor
+             */
+            init: function() {
+                this._ = {};
+
+                // Sort out CSS
+                this.addStyles();
+
+
+                // TODO -------------------------
+
+                // Find favourites button
+                this.el.$favouritesButton = $('.panel.menu .textbox.button.likes');
+                // Half-ify the button
+                this.el.$favouritesButton.addClass('half').addClass('half-first');
+                this.el.$favouritesButton.append(this.tpl.menuSplit);
+                // Fix the text to just "Favorites"
+                this.el.$favouritesButton.find('h2').text('Favorites');
+                // Append additional "Folders" button
+                this.el.$foldersButton = $(this.tpl.foldersButton);
+                this.el.$foldersButton.insertBefore(this.el.$favouritesButton.next());
+
+                // Crowbar secondary nav position
+                // Find the nav pos for Favourites
+                var $userNav = $('#secondary-nav .user-nav .account .user-dropdown');
+                var $userNavFavourites = $userNav.find(':contains("favorites")').parent('li');
+                // Jam in a new item after "Favorites".
+                this.el.$foldersUserNav = $(this.tpl.foldersUserNav);
+                $userNavFavourites.after(this.el.$foldersUserNav);
+
+                // Event: On click of either "folders" link
+                var $links = $()
+                    .add(this.el.$foldersUserNav)
+                    .add(this.el.$foldersButton);
+                var _this = this;
+                $($links).on('click', function(e) {
+
+                    // Build and change page!
+                    var accountUrl = Imgur.Gallery.getInstance()._.account_url;
+                    var fragment = _this.routes.folders.fragment;
+                    window.location.href = "/user/" + accountUrl + "/favorites#" + fragment;
+
+                    // Make sure the page reloads, cause it might only be a hash change
+                    // if we're on the favourites page already
+                    window.location.reload();
+                });
+
+                // Check the route
+                // Confirm with a check of the fragment, and regex of the URL.
+                // This is pretty loosey-goosey, but it's just to stop us being dumb.
+                var imgur = Imgur.getInstance();
+                var urlRegex = new RegExp(this.routes.folders.regex);
+                this.isFoldersView = (
+                    window.location.hash == '#' + this.routes.folders.fragment
+                    && urlRegex.test(imgur._.url)
+                );
+
+                // Correct menu highlights if we're viewing folders
+                if (this.isFoldersView) {
+
+                    // Menu Sidebar
+                    var $panelButtons = $('.panel.menu .textbox.button');
+                    $panelButtons.removeClass('selected');
+                    this.el.$foldersButton.addClass('selected');
+
+                    // User Nav menu
+                    var $navMenuItems = $('#secondary-nav .user-nav .account .user-dropdown li a');
+                    $navMenuItems.removeClass('active');
+                    this.el.$foldersUserNav.find('a').addClass('active');
+                }
+
+
+            },
+
+            /**
+             * Inject stylesheet hacks into DOM
+             */
+            addStyles: function() {
+                var rules = [
+
+                    // Menu panel: Add "half" styles
+                    // We can get away with fixed widths, because imgur uses them.
+                    ".panel.menu .half { width: 128px; display: inline-block; }",
+                    ".panel.menu .half.half-first { margin-right: 0px; }",
+                    ".panel.menu .half.half-first .split {" +
+                    "   border-bottom: 18px solid transparent; " +
+                    "   border-right: 14px solid #2b2b2b; " +
+                    "   border-top: 18px solid transparent; " +
+                    "   width: 0px; height: 0;" +
+                    "   position: absolute; " +
+                    "   top: 0; right: -1px;" +
+                    "}",
+                    ".panel.menu .half.half-second .active { display: block; }",
+                ];
+
+                // Add all rules
+                this.styleSheet = ImgurEnhance.StyleSheet.create();
+                for(var k in rules) {
+                    this.styleSheet.insertRule(rules[k], k);
+                }
+            },
+
+
+        });
+        Class.addSingleton(ImgurEnhance.FavouriteFolders);
+
+        /**
          * Init: On document ready
          */
         $(function() {
             ImgurEnhance.Seent.getInstance();
+            ImgurEnhance.FavouriteFolders.getInstance();
             ImgurEnhance.AlwaysBleed.getInstance();
         });
-
     }
 
     /**
@@ -582,7 +749,7 @@
                     var $img = $post.find('img[data-id]');
 
                     // Validate found id tag
-                    if ($img.length < 1) { return };
+                    if ($img.length < 1) { return; };
 
                     // Check hash
                     var hash = $img.attr('data-id');
