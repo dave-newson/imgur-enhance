@@ -186,6 +186,15 @@
             /** @var {ImgurEnhance.SeentModel} */
             data: null,
 
+            tpl: {
+                seentToggle: '' +
+                '<li>' +
+                '   <a href="javascript:void(0)" id="seent-hide" title="Hide seen images">' +
+                '       <span></span>' +
+                '   </a>' +
+                '</li>'
+            },
+
             /** @var {object} collection of in-page elements */
             elements: {
                 $seentHideItem: null,
@@ -228,12 +237,21 @@
             addStyles: function() {
                 var rules = [
                     // FP image
-                    "#imagelist .seent { border-color: #2b2b2b; background: #000000; }",
-                    "#imagelist .seent img { opacity: 0.33; }",
-                    "#imagelist .seent:hover img { opacity: 1; }",
+                    "#imagelist .seent {" +
+                    "   border-color: #2b2b2b;" +
+                    "   background: #000000;" +
+                    "}",
+                    "#imagelist .seent img {" +
+                    "   opacity: 0.33;" +
+                    "}",
+                    "#imagelist .seent:hover img {" +
+                    "   opacity: 1;" +
+                    "}",
 
                     // FP Icon
-                    "#imagelist .seent:hover .seent-icon { display:none; }",
+                    "#imagelist .seent:hover .seent-icon {" +
+                    "   display:none;" +
+                    "}",
                     "#imagelist .seent .seent-icon { " +
                     "   display: block;" +
                     "   position:absolute;" +
@@ -244,7 +262,9 @@
                     "}",
 
                     // Sitebar Img
-                    "#side-gallery .nav-image.seent .image-thumb { opacity: 0.33; }",
+                    "#side-gallery .nav-image.seent .image-thumb {" +
+                    "   opacity: 0.33;" +
+                    "}",
                     "#side-gallery .nav-image.seent:hover .image-thumb," +
                     "#side-gallery .nav-image.seent.selected .image-thumb {" +
                     "   opacity: 1;" +
@@ -258,7 +278,9 @@
                     "   -ms-interpolation-mode: nearest-neighbor;" +
                     "   background: url(http://s.imgur.com/images/site-sprite.png) -256px -186px no-repeat transparent;" +
                     "}",
-                    "#content .sort-options .active { opacity: 0.9; }"
+                    "#content .sort-options .active {" +
+                    "   opacity: 0.9;" +
+                    "}"
                 ];
 
                 // Add all rules
@@ -321,13 +343,16 @@
                 $('#content .sort-options ul').each(function() {
 
                     // Create seent button with click handler
-                    var $seentHideItem = $('<li><a href="javascript:void(0)" id="seent-hide" title="Hide seen images"><span></span></a></li>');
+                    var $seentHideItem = $(_this.tpl.seentToggle);
                     _this.elements.$seentHideItem = $seentHideItem;
                     _this.elements.$seentHideButton = $seentHideItem.find('a');
 
                     // Add to start of Sort Orders list
                     var $sortOptionsList = $(this);
                     $sortOptionsList.prepend($seentHideItem);
+
+                    // Apply Tipsy to Seent toggle, for imgur tooltip style.
+                    _this.elements.$seentHideButton.tipsy();
 
                     // Event: On click seent hide, toggle state
                     _this.elements.$seentHideButton.on('click', function() {
@@ -424,6 +449,7 @@
         });
         Class.addSingleton(ImgurEnhance.AlwaysBleed);
 
+
         /**
          * Favourite Folders: Because jesus christ.
          * - Adds folder button to sidebar menu
@@ -434,20 +460,24 @@
         Namespace('ImgurEnhance.FavouriteFolders');
         ImgurEnhance.FavouriteFolders = Class.extend({
 
+            /** @var {CSSStyleSheet} */
             styleSheet: null,
+
+            /** @var {ImgurEnhance.FavouriteFoldersModel} */
+            folders: null,
 
             /** @var {object} Html bits */
             tpl: {
                 menuSplit: '<div class="split"></div>',
                 foldersButton: '' +
-                    '<div class="textbox half half-second button folders">' +
-                    '   <h2>Folders</h2>' +
-                    '   <div class="active"></div>' +
-                    '</div>',
+                '<div class="textbox half half-second button folders">' +
+                '   <h2>Folders</h2>' +
+                '   <div class="active"></div>' +
+                '</div>',
                 foldersUserNav: '' +
-                    '<li>' +
-                    '   <a href="//imgur.com/account/favorites#folders">folders</a>' +
-                    '</li>'
+                '<li>' +
+                '   <a href="javascript:void(0);">folders</a>' +
+                '</li>'
             },
 
             /** @var {object} elements */
@@ -460,12 +490,15 @@
             /** @var {object} Routing vars */
             routes: {
                 folders: {
-                    regex: '(\/.*)?\/favorites(\/.*)?',
+                    regex: '\/user\/(.*)\/favorites(\/.*)?',
                     fragment: 'folders'
                 }
             },
 
+            /** @var {string} Fragment to use for routing */
             fragment: 'folders',
+
+            /** @var {bool} */
             isFoldersView: false,
 
             /**
@@ -474,11 +507,139 @@
             init: function() {
                 this._ = {};
 
-                // Sort out CSS
+                // Create Folders model for storage
+                var storage = new Imgur.Storage.LocalStorage();
+                this.folders = new ImgurEnhance.FavouriteFolders.Model.Folders(storage);
+
+                // Crowbar in some CSS
                 this.addStyles();
 
+                // Detect routes
+                this.detectRoute();
+
+                // Crowbar in menu items
+                this.applyMenuChanges();
 
                 // TODO -------------------------
+
+                this.folders = [
+                    {name: 'derp', images: ['4lyXrC5b', 'YhVf0wYb', 'YhVf0wYb', 'ReHZZPkb', 'ReHZZPkb', 'ReHZZPkb']},
+                    {name: 'derp1', images: []},
+                    {name: 'derp2', images: ['4lyXrC5b', 'ReHZZPkb']},
+                    {name: 'derp3', images: ['YhVf0wYb']}
+                ];
+
+                if (this.isFoldersView) {
+                    // Disable infinite scroll
+                    Imgur.InfiniteScroll.getInstance().stopInfiniteScroll();
+
+                    // Clear existing view using nothing but brute force
+                    var $container = $('#likes').parent();
+                    $container.find('#likes').remove();
+
+                    // Create the FavouriteFoldersView
+                    imgur._.favouriteFolders = React.renderComponent(
+                        ImgurEnhance.FavouriteFolders.View.FolderList({
+                            folders: this.folders
+                        }),
+                        $container.get(0)
+                    );
+
+                    // Initialise tipsy on folders
+                    // for tooltip folder names
+                    $('#folders .folder').tipsy();
+                }
+            },
+
+            /**
+             * Inject stylesheet hacks into DOM
+             */
+            addStyles: function() {
+                var rules = [
+
+                    // Menu panel: Add "half" styles
+                    // We can get away with fixed widths, because imgur uses them!
+                    ".panel.menu .half {" +
+                    "   width: 128px;" +
+                    "   display: inline-block;" +
+                    "}",
+                    ".panel.menu .half.half-first {" +
+                    "   margin-right: 0px;" +
+                    "}",
+                    ".panel.menu .half.half-first .split {" +
+                    "   border-bottom: 18px solid transparent; " +
+                    "   border-right: 14px solid #2b2b2b; " +
+                    "   border-top: 18px solid transparent; " +
+                    "   width: 0px; height: 0;" +
+                    "   position: absolute; " +
+                    "   top: 0; right: -1px;" +
+                    "}",
+                    ".panel.menu .half.half-second .active {" +
+                    "   display: block;" +
+                    "}",
+
+                    // Styles for the folders index
+                    // Because the Favorites gallery uses an ID to root the styles >:(
+                    // It's OK if we do it though - we're hacking on top.
+                    '#folders .thumbs {' +
+                    '   line-height: 0;' +
+                    '}',
+                    // "link". Would be an anchor if this wasn't a hack.
+                    '#folders .thumbs .folder {' +
+                    '   position: relative;' +
+                    '   float: left;' +
+                    '   margin: 4px 3px 4px 4px;' +
+                    '   width: 134px;' +
+                    '   height: 134px;' +
+                    '   border: 3px solid #444442;' + // 2?
+                    '}',
+                    '#folders .thumbs .folder:hover {' +
+                    '   cursor: pointer;' +
+                    '   border-color: #c29f37;' +
+                    '}',
+                    // Fix image width creep
+                    '#folders .thumbs .folder img {' +
+                    '   float: left;' +
+                    '   width: 67px; height: 67px;' +
+                    '}',
+
+                    // Missing image "Imgur" logo
+                    '#folders .thumbs .folder .missing {' +
+                    '   background: url(//s.imgur.com/images/site-sprite.png) no-repeat no-repeat;' +
+                    '   width: 88px; height: 40px;' +
+                    '   background-position: 0px -246px;' +
+                    '   left: 28px; top: 46px;' +
+                    '   position: absolute;' +
+                    '}'
+                ];
+
+                // Add all rules
+                this.styleSheet = ImgurEnhance.StyleSheet.create();
+                for(var k in rules) {
+                    this.styleSheet.insertRule(rules[k], k);
+                }
+            },
+
+            /**
+             * Detect if we're on a Folders route.
+             * sets true/false to this.isFoldersView
+             */
+            detectRoute: function() {
+                // Check the route
+                // Confirm with a check of the fragment, and regex of the URL.
+                // This is pretty loosey-goosey, but it's just to stop us being dumb.
+                var imgur = Imgur.getInstance();
+                var urlRegex = new RegExp(this.routes.folders.regex);
+                this.isFoldersView = (
+                    window.location.hash == '#' + this.routes.folders.fragment && urlRegex.test(imgur._.url)
+                );
+            },
+
+            /**
+             * Apply additional menu items to the page
+             * This is just HTML hacks to add menu bits and bobs.
+             */
+            applyMenuChanges: function() {
 
                 // Find favourites button
                 this.el.$favouritesButton = $('.panel.menu .textbox.button.likes');
@@ -505,26 +666,23 @@
                     .add(this.el.$foldersButton);
                 var _this = this;
                 $($links).on('click', function(e) {
+                    e.preventDefault();
 
                     // Build and change page!
-                    var accountUrl = Imgur.Gallery.getInstance()._.account_url;
+                    var accountUrl = Imgur.getInstance()._.auth.url;
                     var fragment = _this.routes.folders.fragment;
-                    window.location.href = "/user/" + accountUrl + "/favorites#" + fragment;
 
-                    // Make sure the page reloads, cause it might only be a hash change
-                    // if we're on the favourites page already
-                    window.location.reload();
+                    // Build URL and try to change URL
+                    var targetPath = "/user/" + accountUrl + "/favorites";
+                    window.location = targetPath + '#' + fragment;
+
+                    // Check if the new URL is the same as the old URL.
+                    // If it is, we need to reload the page.
+                    // Without this, going from Favourites to Folders (same page) doesn't cause a reload.
+                    if (window.location.pathname == targetPath) {
+                        window.location.reload();
+                    }
                 });
-
-                // Check the route
-                // Confirm with a check of the fragment, and regex of the URL.
-                // This is pretty loosey-goosey, but it's just to stop us being dumb.
-                var imgur = Imgur.getInstance();
-                var urlRegex = new RegExp(this.routes.folders.regex);
-                this.isFoldersView = (
-                    window.location.hash == '#' + this.routes.folders.fragment
-                    && urlRegex.test(imgur._.url)
-                );
 
                 // Correct menu highlights if we're viewing folders
                 if (this.isFoldersView) {
@@ -540,40 +698,228 @@
                     this.el.$foldersUserNav.find('a').addClass('active');
                 }
 
-
-            },
-
-            /**
-             * Inject stylesheet hacks into DOM
-             */
-            addStyles: function() {
-                var rules = [
-
-                    // Menu panel: Add "half" styles
-                    // We can get away with fixed widths, because imgur uses them.
-                    ".panel.menu .half { width: 128px; display: inline-block; }",
-                    ".panel.menu .half.half-first { margin-right: 0px; }",
-                    ".panel.menu .half.half-first .split {" +
-                    "   border-bottom: 18px solid transparent; " +
-                    "   border-right: 14px solid #2b2b2b; " +
-                    "   border-top: 18px solid transparent; " +
-                    "   width: 0px; height: 0;" +
-                    "   position: absolute; " +
-                    "   top: 0; right: -1px;" +
-                    "}",
-                    ".panel.menu .half.half-second .active { display: block; }",
-                ];
-
-                // Add all rules
-                this.styleSheet = ImgurEnhance.StyleSheet.create();
-                for(var k in rules) {
-                    this.styleSheet.insertRule(rules[k], k);
-                }
-            },
+                // Tweak Favourites header if on Favorites page
+                $('#likes .panel-header h2').each(function() {
+                    $(this).text('Favorites');
+                });
+            }
 
 
         });
         Class.addSingleton(ImgurEnhance.FavouriteFolders);
+
+        /**
+         * Favourite Folders (model) Folder
+         * Data container for local storage persistence
+         * @Class ImgurEnhance.FavouriteFolders.Model.Folders
+         */
+        Namespace('ImgurEnhance.FavouriteFolders.Model.Folders');
+        ImgurEnhance.FavouriteFolders.Model.Folders = function(a) {
+            this.init(a);
+        };
+        ImgurEnhance.FavouriteFolders.Model.Folders.prototype = {
+
+            /**
+             * LocalStorage
+             */
+            storage: null,
+            storageKey: "ImgurEnhance.FavouriteFolders",
+
+            /**
+             * @var {object} data container
+             */
+            data: {
+                folders: []
+            },
+
+            /**
+             * Constructor
+             */
+            init: function(storage) {
+
+                // Load local storage
+                this.storage = storage;
+                this.data = $.extend(this.data, this.storage.get(this.storageKey));
+            },
+
+            /**
+             * Add an image to a folder
+             * @param {string} imgHash
+             * @param {string} folderKey
+             */
+            addFavouriteToFolder: function(imgHash, folderKey) {
+
+                // Validate the folder exists.
+                var folder = this.data.folders[folderKey];
+                if (folder == undefined) {
+                    return;
+                }
+
+                // Add the item if it doesn't exist in the folder.
+                var index = folder.indexOf(imgHash);
+                if (index < 0) {
+                    folder.push(imgHash);
+                }
+
+                // Save changes
+                this.storage.save(this.storageKey, this.data);
+            },
+
+            /**
+             * Remove a favorite from this specific folder
+             * @param {string} imgHash
+             * @param {string} folderKey
+             */
+            removeFavouriteFromFolder: function(imgHash, folderKey) {
+
+                // Validate the folder exists.
+                var folder = this.data.folders[folderKey];
+                if (folder == undefined) {
+                    return;
+                }
+
+                // Remove item if it's in the folder
+                var index = folder.indexOf(imgHash);
+                if (index > -1) {
+                    folder.splice(index, 1);
+                }
+
+                // Save changes
+                this.storage.save(this.storageKey, this.data);
+            },
+
+            /**
+             * Add a folder
+             * @param {object} folder
+             */
+            addFolder: function(folder) {
+                this.folders.push(folder);
+                this.storage.save(this.storageKey, this.data);
+            },
+
+            /**
+             * Get all folders
+             * @return {Array}
+             */
+            getFolders: function() {
+                return data.folders;
+            },
+
+            /**
+             * Get a specific folder
+             * @param {object|undefined} folderKey
+             */
+            getFolder: function(folderKey) {
+                return data.folders[folderKey];
+            },
+
+            /**
+             * Remove a folder
+             * @param {int} folderKey
+             */
+            removeFolder: function(folderKey) {
+
+                // Locate and remove folder
+                var index = this.data.folders.indexOf(folderKey);
+                if (index > -1) {
+                    this.data.folders.splice(index, 1);
+                }
+
+                // Save changes
+                this.storage.save(this.storageKey, this.data);
+            }
+        };
+
+        /**
+         * FavouriteFolders View FolderList
+         * HTML View for the folder list. Basically like a gallery.
+         */
+        Namespace('ImgurEnhance.FavouriteFolders.View.FolderList');
+        ImgurEnhance.FavouriteFolders.View.FolderList = React.createClass({
+            displayName: "FolderList",
+            propTypes: {
+                folders: React.PropTypes.object
+            },
+
+            /**
+             * Render the initial view
+             */
+            render: function() {
+
+                // Wrapper
+                return React.DOM.div({id: 'folders'},
+
+                    // Folder gallery header
+                    React.DOM.div({className: 'panel-header textbox'},
+                        React.DOM.h2({}, "Favorites by folder"),
+                        React.DOM.div({className: 'clear'})
+                    ),
+
+                    // Folders gallery container
+                    React.DOM.div({className: 'thumbs'},
+                        // Each folder
+                        this.props.folders.map(function (folder, index) {
+                            return ImgurEnhance.FavouriteFolders.View.Folder({
+                                folder: folder
+                            });
+                        })
+                    ),
+
+                    // Clearfix
+                    React.DOM.div({className: 'clear'})
+                );
+            }
+        });
+
+        /**
+         * FavouriteFolders Folder
+         * HTML View for a single Folder in a list of folders.
+         */
+        Namespace('ImgurEnhance.FavouriteFolders.View.Folder');
+        ImgurEnhance.FavouriteFolders.View.Folder = React.createClass({
+            displayName: "Folder",
+            propTypes: {
+                folder: React.PropTypes.object
+            },
+
+            /**
+             * Populate preview images on a Folder
+             * - Shows up to 4 images in a tile
+             * - Shows imgur logo if all images missing
+             * @param folder
+             */
+            populateFolderPreview: function(folder) {
+
+                // Get 4 of the MOST RECENTLY ADDED images in each folder
+                var images = folder.images.slice(0);
+                images = images.slice(Math.max(images.length - 4, 1));
+
+                // Empty? Well..
+                if (images.length < 1) {
+                    return React.DOM.div({className: 'missing'});
+                }
+
+                // Output up to 4 images
+                var output = [];
+                for (var k in images) {
+                    output.push(
+                        React.DOM.img({src: '//i.imgur.com/' + images[k] + '.jpg'})
+                    );
+                }
+
+                return output;
+            },
+
+            /**
+             * Render the initial view
+             */
+            render: function () {
+                return React.DOM.div(
+                    {className: 'folder', title:this.props.folder.name},
+                    this.populateFolderPreview(this.props.folder)
+                );
+            }
+        });
 
         /**
          * Init: On document ready
@@ -679,18 +1025,17 @@
 
                 // !!HACK!! Event: on Remove Loader
                 // This is a monkey-patch into removeLoader on the Router
-                // as there's no good event to latch onto.
+                // as there's no good event to latch onto >:(
                 var cleanUp = Imgur.Router._instance.removeLoader;
                 Imgur.Router._instance.removeLoader = function() {
                     // Run original
                     cleanUp.apply(this);
 
                     // Run seent, with a 500ms delay because something else
-                    // around here is delaying things from being ready.
+                    // around here is delaying things from being ready >:(
                     setTimeout(function() {
                         _this.executeSeent();
                     }, 500);
-
                 };
             },
 
@@ -700,10 +1045,19 @@
             addStyles: function() {
                 var rules = [
                     // FP image seent
-                    ".gallery .GalleryItem.seent .GalleryItem-imageContainer { opacity: 0.4 }",
+                    ".gallery .GalleryItem.seent .GalleryItem-imageContainer {" +
+                    "   opacity: 0.4" +
+                    "}",
 
                     // FP Icon
-                    ".gallery .GalleryItem.seent .seent-icon { display: block; position:absolute; left: -6px; top: 4px; width: 34px; height: 34px; background: url('http://s.imgur.com/images/site-sprite.png') transparent no-repeat; background-position: -250px -184px; }"
+                    ".gallery .GalleryItem.seent .seent-icon {" +
+                    "   display: block;" +
+                    "   position:absolute;" +
+                    "   left: -6px; top: 4px;" +
+                    "   width: 34px; height: 34px;" +
+                    "   background: url('http://s.imgur.com/images/site-sprite.png') transparent no-repeat;" +
+                    "   background-position: -250px -184px;" +
+                    "}"
                 ];
 
                 // Add all rules
