@@ -1280,7 +1280,27 @@
                                     }, this)()
                                 );
                             }, this))
-                        )
+                        ),
+
+                        _.bind(function() {
+                            if (this.state.folderEdit) {
+
+                                // Show the Delete Folder panel at the bottom
+                                return React.DOM.div({className: 'panel-header textbox'},
+                                    React.DOM.div({className:'options'},
+                                        React.DOM.ul({},
+                                            React.DOM.li({},
+                                                React.DOM.a({
+                                                    href: 'javascript:void(0);',
+                                                    onClick: this.onDeleteFolder
+                                                }, 'Delete folder')
+                                            )
+                                        )
+                                    ),
+                                    React.DOM.div({className: 'clear'})
+                                );
+                            }
+                        }, this)()
                     );
                 }
             },
