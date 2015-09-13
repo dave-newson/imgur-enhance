@@ -431,8 +431,9 @@
         ImgurEnhance.AlwaysBleed = Class.extend({
 
             detectorSelector: '#fullbleed-bg',
-            placement: '#content',
+            placement: 'body',
             html: '<div id="fullbleed-bg"></div>',
+            stylsheet: null,
 
             /**
              * Engage!
@@ -443,8 +444,19 @@
 
                 // No bleed? Make it bleed.
                 if ($(this.detectorSelector).length < 1) {
-                    $(this.html).insertBefore(this.placement);
+                    $(this.placement).prepend(this.html);
                 }
+
+                this.addStyles();
+            },
+
+            /**
+             * Fix z-index issue with the background
+             * Without this, it appears on top on certain pages.
+             */
+            addStyles: function() {
+                this.styleSheet = ImgurEnhance.StyleSheet.create();
+                this.styleSheet.insertRule('#fullbleed-bg {z-index: -1;}', 0);
             }
         });
         Class.addSingleton(ImgurEnhance.AlwaysBleed);
@@ -477,7 +489,11 @@
                 foldersUserNav: '' +
                 '<li>' +
                 '   <a href="javascript:void(0);">folders</a>' +
-                '</li>'
+                '</li>',
+                galleryFavoriteFolderButton: '' +
+                '<span class="favorite-folder-image btn btn-grey left title" href="javascript:;" title="Add to favorite folder">' +
+                '   <span class="icon-grid"></span>' +
+                '</span>'
             },
 
             /** @var {object} elements */
@@ -485,6 +501,7 @@
                 $favouritesButton: null,
                 $foldersButton: null,
                 $foldersUserNav: null,
+                $galleryFavoriteFolderButton: null
             },
 
             /** @var {object} Routing vars */
@@ -520,15 +537,6 @@
                 // Crowbar in menu items
                 this.applyMenuChanges();
 
-                // TODO -------------------------
-
-                this.folders = [
-                    {name: 'derpderpderpderpderpderpderpderpderpderp', images: ['4lyXrC5b', 'YhVf0wYb', 'YhVf0wYb', 'ReHZZPkb', 'ReHZZPkb', 'ReHZZPkb']},
-                    {name: 'derp1', images: []},
-                    {name: 'derp2', images: ['4lyXrC5b', 'ReHZZPkb']},
-                    {name: 'derp3', images: ['YhVf0wYb']}
-                ];
-
                 // When in the folder-view Route, add the UI.
                 if (this.isFoldersView) {
                     // Hack: Remove the Favourites page UI
@@ -537,30 +545,8 @@
                     this.displayFavouriteFoldersUi();
                 }
 
-                // Embed the modal on all pages
-                this.embedAddToFavouritesFolderModal();
-
-                // Event: On click favourite button
-                // Show the additional modal UI for add-to-folder
-                $('.favorite-image.btn').on('click', _.bind(function(event) {
-
-                    // On un-favourite, don't show the modal
-                    // Note: This event happens AFTER the standard event
-                    // so we only show the modal if we DO have the 'favorited' class.
-                    if (!$(event.currentTarget).hasClass('favorited')) {
-                        return;
-                    }
-
-                    // Get the hash. Do nothing if doesn't exist.
-                    var imgur = Imgur.getInstance();
-                    if (imgur._.hash === undefined) {
-                        return;
-                    }
-
-                    // Display modal
-                    this.showAddToFavouritesFolderModal(imgur._.hash);
-                }, this));
-
+                // Attach the FavoriteFolder instigation button to the UI
+                this.attachFavoriteFolderButton();
             },
 
             /**
@@ -590,14 +576,20 @@
                     "   display: block;" +
                     "}",
 
+                    // Gallery-inner button style
+                    '.favorite-folder-image {' +
+                    '   padding: 10px 12px 6px;' +
+                    '   margin-top: 1px;' +
+                    '   font-size: 1.1em;' +
+                    '}',
+
                     // Styles for the folders index
                     // Because the Favorites gallery uses an ID to root the styles >:(
-                    // It's OK if we do it though - we're hacking on top.
-                    '#folders .thumbs {' +
+                    '.folder-list .thumbs {' +
                     '   line-height: 0;' +
                     '}',
                     // "link". Would be an anchor if this wasn't a hack.
-                    '#folders .thumbs .folder {' +
+                    '.folder-list .thumbs .folder {' +
                     '   position: relative;' +
                     '   float: left;' +
                     '   margin: 4px 3px 4px 4px;' +
@@ -605,19 +597,19 @@
                     '   height: 134px;' +
                     '   border: 3px solid #444442;' + // 2?
                     '}',
-                    '#folders .thumbs .folder:hover {' +
+                    '.folder-list .thumbs .folder:hover {' +
                     '   cursor: pointer;' +
                     '   border-color: #c29f37;' +
                     '}',
                     // Fix image width creep
-                    '#folders .thumbs .folder img {' +
+                    '.folder-list .thumbs .folder img {' +
                     '   float: left;' +
                     '   width: 67px; height: 67px;' +
                     '}',
 
                     // Folder label. Gradient over folder image
                     //
-                    '#folders .thumbs .folder .folder-info {' +
+                    '.folder-list .thumbs .folder .folder-info {' +
                     '   position: absolute;' +
                     '   left: 0px; bottom:0px;' +
                     '   width: 100%; height: 70px;' +
@@ -625,7 +617,7 @@
                     '   background: linear-gradient(to bottom,transparent,#000);' +
                     "   filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#00000000', endColorstr='#000000', GradientType=0);" +
                     "}",
-                    '#folders .thumbs .folder .folder-info .title {' +
+                    '.folder-list .thumbs .folder .folder-info .title {' +
                     '   position: absolute;' +
                     '   bottom: 0px;' +
                     '   width: 100%;' +
@@ -634,13 +626,69 @@
                     '   overflow: hidden;' +
                     '}',
 
-                        // Missing image "Imgur" logo
-                    '#folders .thumbs .folder .missing {' +
-                    '   background: url(//s.imgur.com/images/site-sprite.png) no-repeat no-repeat;' +
-                    '   width: 88px; height: 40px;' +
-                    '   background-position: 0px -246px;' +
-                    '   left: 28px; top: 46px;' +
+                    // Missing image "Imgur" logo
+                    '.folder-list .thumbs .folder .missing {' +
                     '   position: absolute;' +
+                    '   left: 28px; top: 46px;' +
+                    '   width: 88px; height: 40px;' +
+                    '   background: url(//s.imgur.com/images/site-sprite.png) no-repeat no-repeat;' +
+                    '   background-position: 0px -246px;' +
+                    '}',
+
+                    // Modal: Nudge the title
+                    '.imgur-enhance-ff-colorbox #cboxTitle {' +
+                    '   padding-left: 0.5em;' +
+                    '}',
+
+                    // "Add Folder" icon
+                    '.folder-list .thumbs .folder.folder-add .icon-add {' +
+                    '   position: absolute;' +
+                    '   left: 57px; top: 57px;' +
+                    '   width: 22px; height: 22px;' +
+                    '   background: url(//s.imgur.com/images/site-sprite.png) no-repeat no-repeat;' +
+                    '   background-position: -282px -32px;' +
+                    '}',
+
+                    '.thumbs a {' +
+                    '   position: relative;' +
+                    '}',
+
+                    // "Delete Image" icon
+                    '.thumbs a .icon-remove {' +
+                    '   position: absolute;' +
+                    '   right: 10px; bottom: 10px;' +
+                    '   width: 20px; height: 20px;' +
+                    '   background: url(//s.imgur.com/images/site-sprite.png) no-repeat no-repeat;' +
+                    '   background-position: -110px -80px;' +
+                    '}',
+
+                    // "Add Folder" input field for name
+                    '.folder-list .folder-add input {' +
+                    '   border: 1px solid #665d32;' +
+                    '   border-radius: 2px;' +
+                    '   background: #000;' +
+                    '   color: #fff;' +
+                    '   padding: 4px;' +
+                    '   line-height: 1.2em;' +
+                    '   position: absolute;' +
+                    '   bottom: 2px; left: 2px;' +
+                    '   width: 120px;' +
+                    '}',
+
+                    // "Add Folder" background image override
+                    '.folder-list .folder.folder-add img {' +
+                    '   width: 100%; height: 100%;' +
+                    '   position: inline;' +
+                    '   float: none;' +
+                    '}',
+
+                    // Folder title edit
+                    '.folder-title-edit {' +
+                    '   background: #000;' +
+                    '   color: #fff;' +
+                    '   border: 1px solid #665d32;' +
+                    '   font-size: inherit;' +
+                    '   font-weight: inherit;' +
                     '}'
                 ];
 
@@ -761,44 +809,80 @@
             },
 
             /**
+             * On Gallery pages, attach the FavoriteFolder button
+             */
+            attachFavoriteFolderButton: function() {
+
+                // Find favourite button
+                var $target = $('.favorite-image.btn');
+
+                // Abort if button not found
+                if (!$target.length) {
+                    return;
+                }
+
+                // Append the new button
+                this.el.$galleryFavoriteFolderButton = $(this.tpl.galleryFavoriteFolderButton);
+                this.el.$galleryFavoriteFolderButton.insertAfter($target);
+
+                // Event: On click favourite button
+                // Show the additional modal UI for add-to-folder
+                this.el.$galleryFavoriteFolderButton.on('click', _.bind(function(event) {
+
+                    // If the favorite button hasn't been clicked, click it.
+                    if (!$target.hasClass('favorited')) {
+                        $target.trigger('click');
+                    }
+
+                    // Get the hash. Do nothing if doesn't exist (system failure).
+                    var imgur = Imgur.getInstance();
+                    if (imgur._.hash === undefined) {
+                        return;
+                    }
+
+                    // Display modal
+                    this.showAddToFavouritesFolderModal(imgur._.hash);
+                }, this));
+
+                // Apply tipsy
+                this.el.$galleryFavoriteFolderButton.tipsy({
+                    gravity: "s",
+                    opacity: 1
+                });
+            },
+
+            /**
              * Display the add-to-favourites modal window
              * @param {string} imageHash
              */
             showAddToFavouritesFolderModal: function(imageHash) {
                 // Display the thing in a colorbox modal
-                $.colorbox({
-                    href: '#imgur-enhance-ff',
-                    open: !0,
-                    width: "580px",
-                    inline: !0,
+                var modal = $.colorbox({
+                    href: '',
+                    title: 'Add favorite to folder',
+                    open: true,
+                    width: "610px",
+                    height: "492px",
+                    inline: true,
                     top: "15%",
                     className: "imgur-enhance-ff-colorbox",
                     transition: "none",
-                    scrolling: !1,
-                    onComplete: _.bind(function() {
-                        // Hack to convery the hash to the modal
-                        $('#imgur-enhance-ff [data-image-hash]').attr('data-image-hash', imageHash);
-                    }, this)
-                })
-            },
-
-            /**
-             * !!HACK Jam in some HTML for the AddFavouriteToFolder HTML modal.
-             */
-            embedAddToFavouritesFolderModal: function() {
-
-                // Create no-display container at body level
-                var $container = $('<div class="nodisplay"></div>');
-                $container.appendTo('body');
+                    scrolling: true
+                });
 
                 // Initialise component under the container
                 imgur._.favouriteFolders = React.renderComponent(
                     ImgurEnhance.FavouriteFolders.View.AddToFavouriteFolderModal({
-                        folders: this.folders
+                        folders: this.folders,
+                        imageHash: imageHash,
+                        closeModal: function() {
+                            modal.colorbox.close();
+                        }
                     }),
-                    $container.get(0)
+                    $('.imgur-enhance-ff-colorbox #cboxLoadedContent').get(0)
                 );
-            }
+
+            },
 
         });
         Class.addSingleton(ImgurEnhance.FavouriteFolders);
@@ -851,13 +935,13 @@
                 }
 
                 // Add the item if it doesn't exist in the folder.
-                var index = folder.indexOf(imgHash);
+                var index = folder.images.indexOf(imgHash);
                 if (index < 0) {
-                    folder.push(imgHash);
+                    folder.images.push(imgHash);
                 }
 
                 // Save changes
-                this.storage.save(this.storageKey, this.data);
+                this.save();
             },
 
             /**
@@ -874,22 +958,34 @@
                 }
 
                 // Remove item if it's in the folder
-                var index = folder.indexOf(imgHash);
+                var index = folder.images.indexOf(imgHash);
                 if (index > -1) {
-                    folder.splice(index, 1);
+                    folder.images.splice(index, 1);
                 }
 
                 // Save changes
-                this.storage.save(this.storageKey, this.data);
+                this.save();
             },
 
             /**
              * Add a folder
              * @param {object} folder
+             * @return {int} New folder key
              */
             addFolder: function(folder) {
-                this.folders.push(folder);
+
+                // Folder template
+                var folderTpl = {
+                    name: 'New Folder',
+                    images: []
+                };
+
+                // Add folder and save
+                var key = this.data.folders.push($.extend(folderTpl, folder));
                 this.storage.save(this.storageKey, this.data);
+
+                // Return the new index (length - 1)
+                return key - 1;
             },
 
             /**
@@ -897,15 +993,15 @@
              * @return {Array}
              */
             getFolders: function() {
-                return data.folders;
+                return this.data.folders;
             },
 
             /**
              * Get a specific folder
-             * @param {object|undefined} folderKey
+             * @param {int} folderKey
              */
             getFolder: function(folderKey) {
-                return data.folders[folderKey];
+                return this.data.folders[folderKey];
             },
 
             /**
@@ -915,12 +1011,20 @@
             removeFolder: function(folderKey) {
 
                 // Locate and remove folder
-                var index = this.data.folders.indexOf(folderKey);
-                if (index > -1) {
-                    this.data.folders.splice(index, 1);
+                var folder = this.data.folders[folderKey];
+                if (folder !== undefined) {
+                    this.data.folders.splice(folderKey, 1);
                 }
 
                 // Save changes
+                this.save();
+            },
+
+            /**
+             * Save changes
+             */
+            save: function()
+            {
                 this.storage.save(this.storageKey, this.data);
             }
         };
@@ -943,7 +1047,10 @@
             getInitialState: function() {
                 return {
                     showFolders: true,
-                    folderKey: null
+                    folderEdit: false,
+                    folderKey: null,
+                    imageCount: 0,
+                    folderName: ''
                 };
             },
 
@@ -952,9 +1059,13 @@
              * @param {int} folderKey
              */
             onFolderClick: function (folderKey) {
+                var folder = this.props.folders.getFolder(folderKey);
+
                 this.setState({
                     showFolders: false,
-                    folderKey: folderKey
+                    folderKey: folderKey,
+                    imageCount: folder.images.length,
+                    folderName: folder.name
                 });
             },
 
@@ -963,7 +1074,7 @@
              * @param hash
              */
             getImageUrl: function (hash) {
-                return '//i.imgur.com/' + hash + '.jpg';
+                return '//i.imgur.com/' + hash + 'b.jpg';
             },
 
             /**
@@ -976,13 +1087,92 @@
             },
 
             /**
+             * On click of EditFolder button
+             * - Switch to Edit mode
+             */
+            onEditFolder: function() {
+                this.setState({
+                    folderEdit: !this.state.folderEdit
+                });
+            },
+
+            /**
+             * Event: User clicked delete folder
+             * - Confirm before deletion
+             */
+            onDeleteFolder: function() {
+                if (confirm('Are you sure you want to delete this folder?')) {
+                    this.deleteFolder();
+                }
+            },
+
+            /**
+             * Delete the given folder
+             */
+            deleteFolder: function() {
+                this.props.folders.removeFolder(this.state.folderKey);
+                window.location.reload();
+            },
+
+            /**
+             * Rename the folder
+             * @param {object} event
+             */
+            onChangeFolderName: function(event) {
+
+                // Get the value
+                var newName = event.target.value;
+
+                // Persist
+                var folder = this.props.folders.getFolder(this.state.folderKey);
+                folder.name = newName;
+                this.props.folders.save();
+
+                // Update the view state
+                this.setState({
+                    folderName: newName
+                });
+            },
+
+            /**
+             * On click of a favourite image in the folder
+             * - If editing, suppress the standard event
+             * @param {object} event
+             */
+            onClickImage: function(event) {
+                if (this.state.folderEdit) {
+                    event.preventDefault();
+                    return false;
+                }
+            },
+
+            /**
+             * Remove an image from this folder
+             * @param {string} imageHash
+             */
+            removeImage: function(imageHash) {
+                this.props.folders.removeFavouriteFromFolder(imageHash, this.state.folderKey);
+                this.refreshImageCount();
+            },
+
+            /**
+             * Refresh the image count state
+             * State will reload if the count has changed.
+             */
+            refreshImageCount: function() {
+                this.setState({
+                    imageCount: this.props.folders.getFolder(this.state.folderKey).images.length
+                });
+            },
+
+            /**
              * Render the initial view
              */
             render: function() {
 
                 // Show folders index
                 if (this.state.showFolders) {
-                    return React.DOM.div({id: 'folders'},
+                    return React.DOM.div({id: 'folders', className:'folder-list'},
 
                         // Folder gallery header
                         React.DOM.div({className: 'panel-header textbox'},
@@ -994,7 +1184,7 @@
                         React.DOM.div({className: 'thumbs'},
 
                             // Each folder
-                            this.props.folders.map(_.bind(function (folder, index) {
+                            this.props.folders.getFolders().map(_.bind(function (folder, index) {
                                 return ImgurEnhance.FavouriteFolders.View.Folder({
                                     id: index,
                                     folder: folder,
@@ -1014,9 +1204,10 @@
                 if (this.state.folderKey !== null) {
 
                     // Load and validate folder
-                    var folder = this.props.folders[this.state.folderKey];
+                    var folder = this.props.folders.getFolder(this.state.folderKey);
                     if (folder === undefined) {
-                        return;
+                        // Error, but just chuck bad an emtpy div.
+                        return React.DOM.div({id: 'likes'});
                     }
 
                     // Images in folder
@@ -1024,7 +1215,45 @@
 
                         // Folder gallery header
                         React.DOM.div({className: 'panel-header textbox'},
-                            React.DOM.h2({}, "Favorites folder: " + folder.name),
+                            React.DOM.h2({},
+                                "Favorites folder: ",
+                                _.bind(function() {
+
+                                    // Edit or view mode?
+                                    if (this.state.folderEdit) {
+                                        var name = this.state.folderName;
+                                        return React.DOM.input({
+                                            className: 'folder-title-edit',
+                                            value: name,
+                                            onChange: this.onChangeFolderName
+                                        });
+                                    } else {
+                                        return folder.name;
+                                    }
+
+                                }, this)()
+                            ),
+                            React.DOM.div({className:'options'},
+                                React.DOM.ul({},
+                                    React.DOM.li({},
+                                        React.DOM.a({
+                                            href:'javascript:void(0);',
+                                            onClick: this.onEditFolder
+                                        },
+                                            _.bind(function() {
+
+                                                // Determine text
+                                                if (this.state.folderEdit) {
+                                                    return 'View'
+                                                } else {
+                                                    return 'Edit';
+                                                }
+
+                                            }, this)()
+                                        )
+                                    )
+                                )
+                            ),
                             React.DOM.div({className: 'clear'})
                         ),
 
@@ -1032,8 +1261,23 @@
                         React.DOM.div({className: 'thumbs'},
 
                             folder.images.map(_.bind(function (imageHash, index) {
-                                return React.DOM.a({href: this.getFavouriteImagePageUrl(imageHash)},
-                                    React.DOM.img({src: this.getImageUrl(imageHash)})
+                                return React.DOM.a({
+                                        href: this.getFavouriteImagePageUrl(imageHash),
+                                        onClick: this.onClickImage
+                                    },
+                                    React.DOM.img({src: this.getImageUrl(imageHash)}),
+                                    _.bind(function () {
+
+                                        // Edit mode: show delete button
+                                        if (this.state.folderEdit) {
+                                            return React.DOM.div({
+                                                className: 'icon-remove',
+                                                onClick: _.bind(function() {
+                                                    this.removeImage(imageHash);
+                                                }, this)
+                                            })
+                                        }
+                                    }, this)()
                                 );
                             }, this))
                         )
@@ -1087,7 +1331,7 @@
                 var output = [];
                 for (var k in images) {
                     output.push(
-                        React.DOM.img({src: '//i.imgur.com/' + images[k] + '.jpg'})
+                        React.DOM.img({src: '//i.imgur.com/' + images[k] + 'b.jpg'})
                     );
                 }
 
@@ -1136,7 +1380,9 @@
         ImgurEnhance.FavouriteFolders.View.AddToFavouriteFolderModal = React.createClass({
             displayName: "AddToFavouriteFolderModal",
             propTypes: {
-                folders: React.PropTypes.object.isRequired
+                folders: React.PropTypes.object.isRequired,
+                imageHash: React.PropTypes.number.isRequired,
+                closeModel: React.PropTypes.func.isRequired
             },
 
             /**
@@ -1145,15 +1391,23 @@
              */
             getInitialState: function() {
                 return {
+                    addFolder: false
                 };
             },
 
             /**
-             * On click of a folder, open the folder.
+             * On click of a folder
+             * - add the hash to the folder
+             * - close the modal
              * @param {int} folderKey
              */
             onFolderClick: function (folderKey) {
-                // TODO: Add to folder. Close modal.
+
+                // Add favourite
+                this.props.folders.addFavouriteToFolder(this.props.imageHash, folderKey);
+
+                // Close this modal
+                this.closeModal();
             },
 
             /**
@@ -1161,7 +1415,48 @@
              * @param hash
              */
             getImageUrl: function (hash) {
-                return '//i.imgur.com/' + hash + '.jpg';
+                return '//i.imgur.com/' + hash + 'b.jpg';
+            },
+
+            /**
+             * On click folder add
+             */
+            toggleAddFolder: function() {
+
+                // Toggle the add-folder state
+                this.setState({
+                    addFolder: true
+                });
+            },
+
+            /**
+             * Create the folder
+             */
+            createFolder: function(event) {
+
+                // Detect [enter] key
+                if (event.keyCode != 13) {
+                    return;
+                }
+
+                // Create the folder
+                var folderKey = this.props.folders.addFolder({
+                    name: $(event.currentTarget).val(),
+                    images: []
+                });
+
+                // Add the image
+                this.props.folders.addFavouriteToFolder(this.props.imageHash, folderKey);
+
+                // Close modal
+                this.closeModal();
+            },
+
+            /**
+             * Close the modal
+             */
+            closeModal: function() {
+                this.props.closeModal();
             },
 
             /**
@@ -1170,19 +1465,13 @@
             render: function() {
 
                 // Show folders index
-                return React.DOM.div({id: 'imgur-enhance-ff'},
-
-                    // Folder gallery header
-                    React.DOM.div({className: 'panel-header textbox'},
-                        React.DOM.h2({}, "Favorites by folder"),
-                        React.DOM.div({className: 'clear'})
-                    ),
+                return React.DOM.div({id: 'imgur-enhance-ff', className: 'folder-list'},
 
                     // Folders gallery container
                     React.DOM.div({className: 'thumbs'},
 
                         // Each folder
-                        this.props.folders.map(_.bind(function (folder, index) {
+                        this.props.folders.getFolders().map(_.bind(function (folder, index) {
                             return ImgurEnhance.FavouriteFolders.View.Folder({
                                 id: index,
                                 folder: folder,
@@ -1190,7 +1479,34 @@
                                     this.onFolderClick(index);
                                 }, this)
                             });
-                        }, this))
+                        }, this)),
+
+                        // "Add folder" fake folder
+                        React.DOM.div(
+                        {
+                            className: 'folder folder-add',
+                            onClick: _.bind(this.toggleAddFolder, this)
+                        },
+                            _.bind(function() {
+
+                                // AddFolder mode or SelectFolder mode?
+                                if (this.state.addFolder) {
+
+                                    // Show folder info on image
+                                    return [
+                                        React.DOM.img({src: this.getImageUrl(this.props.imageHash)}),
+                                        React.DOM.div({className: 'folder-info'},
+                                            React.DOM.input({
+                                                onKeyUp: this.createFolder
+                                            })
+                                        )
+                                    ];
+                                } else {
+                                    // Show the add icon
+                                    return React.DOM.div({className: 'icon-add'})
+                                }
+                            }, this)()
+                        )
                     ),
 
                     // Clearfix
