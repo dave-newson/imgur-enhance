@@ -834,14 +834,21 @@
                         $target.trigger('click');
                     }
 
-                    // Get the hash. Do nothing if doesn't exist (system failure).
-                    var imgur = Imgur.getInstance();
-                    if (imgur._.hash === undefined) {
-                        return;
-                    }
+                    // Get the hash.
+                    // Do nothing if doesn't exist (system failure).
+                    try {
+                        var image = Imgur.Gallery.getInstance().imgurInsideNav.getImage();
+                        var hash = image.hash;
+                        var thumb = (image.album_cover) ? image.album_cover : image.hash;
+                    } catch (e) {}
 
                     // Display modal
-                    this.showAddToFavouritesFolderModal(imgur._.hash);
+                    // Note: short keys, because space is at a premium in localStorage
+                    this.showAddToFavouritesFolderModal({
+                        h: hash,
+                        t: thumb
+                    });
+
                 }, this));
 
                 // Apply tipsy
@@ -853,9 +860,9 @@
 
             /**
              * Display the add-to-favourites modal window
-             * @param {string} imageHash
+             * @param {object} img
              */
-            showAddToFavouritesFolderModal: function(imageHash) {
+            showAddToFavouritesFolderModal: function(img) {
                 // Display the thing in a colorbox modal
                 var modal = $.colorbox({
                     href: '',
@@ -874,7 +881,7 @@
                 imgur._.favouriteFolders = React.renderComponent(
                     ImgurEnhance.FavouriteFolders.View.AddToFavouriteFolderModal({
                         folders: this.folders,
-                        imageHash: imageHash,
+                        img: img,
                         closeModal: function() {
                             modal.colorbox.close();
                         }
@@ -923,10 +930,10 @@
 
             /**
              * Add an image to a folder
-             * @param {string} imgHash
+             * @param {object} img
              * @param {string} folderKey
              */
-            addFavouriteToFolder: function(imgHash, folderKey) {
+            addFavouriteToFolder: function(img, folderKey) {
 
                 // Validate the folder exists.
                 var folder = this.data.folders[folderKey];
@@ -934,11 +941,12 @@
                     return;
                 }
 
-                // Add the item if it doesn't exist in the folder.
-                var index = folder.images.indexOf(imgHash);
-                if (index < 0) {
-                    folder.images.push(imgHash);
+                // Don't re-add if already present
+                if (_.findIndex(folder, {h:img.h}) >= 0) {
+                    return;
                 }
+
+                folder.images.push(img);
 
                 // Save changes
                 this.save();
@@ -946,10 +954,10 @@
 
             /**
              * Remove a favorite from this specific folder
-             * @param {string} imgHash
+             * @param {object} img
              * @param {string} folderKey
              */
-            removeFavouriteFromFolder: function(imgHash, folderKey) {
+            removeFavouriteFromFolder: function(img, folderKey) {
 
                 // Validate the folder exists.
                 var folder = this.data.folders[folderKey];
@@ -958,7 +966,7 @@
                 }
 
                 // Remove item if it's in the folder
-                var index = folder.images.indexOf(imgHash);
+                var index = _.findIndex(folder, {h: img.h});
                 if (index > -1) {
                     folder.images.splice(index, 1);
                 }
@@ -1071,19 +1079,19 @@
 
             /**
              * Get the view URL of an image
-             * @param hash
+             * @param {object} img
              */
-            getImageUrl: function (hash) {
-                return '//i.imgur.com/' + hash + 'b.jpg';
+            getImageUrl: function (img) {
+                return '//i.imgur.com/' + img.t + 'b.jpg';
             },
 
             /**
              * Get the Link URL to a Favourite Image page
-             * @param hash
+             * @param {object} img
              */
-            getFavouriteImagePageUrl: function (hash) {
+            getFavouriteImagePageUrl: function (img) {
                 var auth = Imgur.getInstance()._.auth;
-                return '//imgur.com/user/' + auth.url + '/favorites/' + hash;
+                return '//imgur.com/user/' + auth.url + '/favorites/' + img.h;
             },
 
             /**
@@ -1148,10 +1156,10 @@
 
             /**
              * Remove an image from this folder
-             * @param {string} imageHash
+             * @param {object} img
              */
-            removeImage: function(imageHash) {
-                this.props.folders.removeFavouriteFromFolder(imageHash, this.state.folderKey);
+            removeImage: function(img) {
+                this.props.folders.removeFavouriteFromFolder(img, this.state.folderKey);
                 this.refreshImageCount();
             },
 
@@ -1260,12 +1268,12 @@
                         // Images gallery
                         React.DOM.div({className: 'thumbs'},
 
-                            folder.images.map(_.bind(function (imageHash, index) {
+                            folder.images.map(_.bind(function (img, index) {
                                 return React.DOM.a({
-                                        href: this.getFavouriteImagePageUrl(imageHash),
+                                        href: this.getFavouriteImagePageUrl(img),
                                         onClick: this.onClickImage
                                     },
-                                    React.DOM.img({src: this.getImageUrl(imageHash)}),
+                                    React.DOM.img({src: this.getImageUrl(img)}),
                                     _.bind(function () {
 
                                         // Edit mode: show delete button
@@ -1273,7 +1281,7 @@
                                             return React.DOM.div({
                                                 className: 'icon-remove',
                                                 onClick: _.bind(function() {
-                                                    this.removeImage(imageHash);
+                                                    this.removeImage(img);
                                                 }, this)
                                             })
                                         }
@@ -1351,7 +1359,7 @@
                 var output = [];
                 for (var k in images) {
                     output.push(
-                        React.DOM.img({src: '//i.imgur.com/' + images[k] + 'b.jpg'})
+                        React.DOM.img({src: '//i.imgur.com/' + images[k].t + 'b.jpg'})
                     );
                 }
 
@@ -1401,7 +1409,7 @@
             displayName: "AddToFavouriteFolderModal",
             propTypes: {
                 folders: React.PropTypes.object.isRequired,
-                imageHash: React.PropTypes.number.isRequired,
+                img: React.PropTypes.object.isRequired,
                 closeModel: React.PropTypes.func.isRequired
             },
 
@@ -1424,7 +1432,7 @@
             onFolderClick: function (folderKey) {
 
                 // Add favourite
-                this.props.folders.addFavouriteToFolder(this.props.imageHash, folderKey);
+                this.props.folders.addFavouriteToFolder(this.props.img, folderKey);
 
                 // Close this modal
                 this.closeModal();
@@ -1432,10 +1440,10 @@
 
             /**
              * Get the view URL of an image
-             * @param hash
+             * @param img
              */
-            getImageUrl: function (hash) {
-                return '//i.imgur.com/' + hash + 'b.jpg';
+            getImageUrl: function (img) {
+                return '//i.imgur.com/' + img.t + 'b.jpg';
             },
 
             /**
@@ -1466,7 +1474,7 @@
                 });
 
                 // Add the image
-                this.props.folders.addFavouriteToFolder(this.props.imageHash, folderKey);
+                this.props.folders.addFavouriteToFolder(this.props.img, folderKey);
 
                 // Close modal
                 this.closeModal();
@@ -1514,7 +1522,7 @@
 
                                     // Show folder info on image
                                     return [
-                                        React.DOM.img({src: this.getImageUrl(this.props.imageHash)}),
+                                        React.DOM.img({src: this.getImageUrl(this.props.img)}),
                                         React.DOM.div({className: 'folder-info'},
                                             React.DOM.input({
                                                 onKeyUp: this.createFolder
