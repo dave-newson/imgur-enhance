@@ -529,22 +529,38 @@
                     {name: 'derp3', images: ['YhVf0wYb']}
                 ];
 
+                // When in the folder-view Route, add the UI.
                 if (this.isFoldersView) {
-                    // Disable infinite scroll
-                    Imgur.InfiniteScroll.getInstance().stopInfiniteScroll();
-
-                    // Clear existing view using nothing but brute force
-                    var $container = $('#likes').parent();
-                    $container.find('#likes').remove();
-
-                    // Create the FavouriteFoldersView
-                    imgur._.favouriteFolders = React.renderComponent(
-                        ImgurEnhance.FavouriteFolders.View.FolderList({
-                            folders: this.folders
-                        }),
-                        $container.get(0)
-                    );
+                    // Hack: Remove the Favourites page UI
+                    this.removeFavoritesUi();
+                    // Display the Folders UI
+                    this.displayFavouriteFoldersUi();
                 }
+
+                // Embed the modal on all pages
+                this.embedAddToFavouritesFolderModal();
+
+                // Event: On click favourite button
+                // Show the additional modal UI for add-to-folder
+                $('.favorite-image.btn').on('click', _.bind(function(event) {
+
+                    // On un-favourite, don't show the modal
+                    // Note: This event happens AFTER the standard event
+                    // so we only show the modal if we DO have the 'favorited' class.
+                    if (!$(event.currentTarget).hasClass('favorited')) {
+                        return;
+                    }
+
+                    // Get the hash. Do nothing if doesn't exist.
+                    var imgur = Imgur.getInstance();
+                    if (imgur._.hash === undefined) {
+                        return;
+                    }
+
+                    // Display modal
+                    this.showAddToFavouritesFolderModal(imgur._.hash);
+                }, this));
+
             },
 
             /**
@@ -719,11 +735,69 @@
             },
 
             /**
-             * View the specified folder
-             * @param {int} folderKey
+             * !!HACK Remove the favourite folders UI
+             * This is pretty violent and shonkey.
              */
-            viewFolder: function(folderKey) {
-                console.log(folderKey);
+            removeFavoritesUi: function() {
+                // Disable infinite scroll
+                Imgur.InfiniteScroll.getInstance().stopInfiniteScroll();
+
+                // Clear existing view using nothing but brute force
+                $('#content .left .panel').children().remove();
+            },
+
+            /**
+             * Display the favourite folders UI
+             * This is a react component. Neat!
+             */
+            displayFavouriteFoldersUi: function() {
+                var $container = $('#content .left .panel');
+                imgur._.favouriteFolders = React.renderComponent(
+                    ImgurEnhance.FavouriteFolders.View.FolderList({
+                        folders: this.folders
+                    }),
+                    $container.get(0)
+                );
+            },
+
+            /**
+             * Display the add-to-favourites modal window
+             * @param {string} imageHash
+             */
+            showAddToFavouritesFolderModal: function(imageHash) {
+                // Display the thing in a colorbox modal
+                $.colorbox({
+                    href: '#imgur-enhance-ff',
+                    open: !0,
+                    width: "580px",
+                    inline: !0,
+                    top: "15%",
+                    className: "imgur-enhance-ff-colorbox",
+                    transition: "none",
+                    scrolling: !1,
+                    onComplete: _.bind(function() {
+                        // Hack to convery the hash to the modal
+                        $('#imgur-enhance-ff [data-image-hash]').attr('data-image-hash', imageHash);
+                    }, this)
+                })
+            },
+
+            /**
+             * !!HACK Jam in some HTML for the AddFavouriteToFolder HTML modal.
+             */
+            embedAddToFavouritesFolderModal: function() {
+
+                // Create no-display container at body level
+                var $container = $('<div class="nodisplay"></div>');
+                $container.appendTo('body');
+
+                // Initialise component under the container
+                imgur._.favouriteFolders = React.renderComponent(
+                    ImgurEnhance.FavouriteFolders.View.AddToFavouriteFolderModal({
+                        folders: this.folders
+                    }),
+                    $container.get(0)
+                );
             }
 
         });
@@ -1051,6 +1125,78 @@
                     )
                 );
             }
+        });
+
+
+        /**
+         * FavouriteFolder View AddToFavouriteFolderModal
+         * HTML View for add-to-folder
+         */
+        Namespace('ImgurEnhance.FavouriteFolders.View.AddToFavouriteFolderModal');
+        ImgurEnhance.FavouriteFolders.View.AddToFavouriteFolderModal = React.createClass({
+            displayName: "AddToFavouriteFolderModal",
+            propTypes: {
+                folders: React.PropTypes.object.isRequired
+            },
+
+            /**
+             * Initial state
+             * @returns {object}
+             */
+            getInitialState: function() {
+                return {
+                };
+            },
+
+            /**
+             * On click of a folder, open the folder.
+             * @param {int} folderKey
+             */
+            onFolderClick: function (folderKey) {
+                // TODO: Add to folder. Close modal.
+            },
+
+            /**
+             * Get the view URL of an image
+             * @param hash
+             */
+            getImageUrl: function (hash) {
+                return '//i.imgur.com/' + hash + '.jpg';
+            },
+
+            /**
+             * Render the modal view
+             */
+            render: function() {
+
+                // Show folders index
+                return React.DOM.div({id: 'imgur-enhance-ff'},
+
+                    // Folder gallery header
+                    React.DOM.div({className: 'panel-header textbox'},
+                        React.DOM.h2({}, "Favorites by folder"),
+                        React.DOM.div({className: 'clear'})
+                    ),
+
+                    // Folders gallery container
+                    React.DOM.div({className: 'thumbs'},
+
+                        // Each folder
+                        this.props.folders.map(_.bind(function (folder, index) {
+                            return ImgurEnhance.FavouriteFolders.View.Folder({
+                                id: index,
+                                folder: folder,
+                                onClick: _.bind(function () {
+                                    this.onFolderClick(index);
+                                }, this)
+                            });
+                        }, this))
+                    ),
+
+                    // Clearfix
+                    React.DOM.div({className: 'clear'})
+                );
+            },
         });
 
         /**
