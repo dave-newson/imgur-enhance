@@ -9,8 +9,8 @@
      * Favourite Folders: Because jesus christ.
      * - Adds folder button to sidebar menu
      * - Tramples on the Favourites page
-     * - Adds UI to the "Favourite" click, which lets you pick-a-folder!
-     * - Uses local storage to persist your folder sets.
+     * - Adds an extra "Favourite Folder" button to GalleryInner, which lets you pick-a-folder!
+     * - Uses local storage to persist your folder sets (ew).
      */
     Namespace('ImgurEnhance.FavouriteFolders');
     ImgurEnhance.FavouriteFolders = Class.extend({
@@ -23,16 +23,23 @@
 
         /** @var {object} Html bits */
         tpl: {
+            // Sidebar menu: divider for half-buttons
             menuSplit: '<div class="split"></div>',
+
+            // Sidebar menu: Folder button
             foldersButton: '' +
             '<div class="textbox half half-second button folders">' +
             '   <h2>Folders</h2>' +
             '   <div class="active"></div>' +
             '</div>',
+
+            // User Nav menu: Folder button
             foldersUserNav: '' +
             '<li>' +
             '   <a href="javascript:void(0);">folders</a>' +
             '</li>',
+
+            // Gallery Inner: Favorite folder button
             galleryFavoriteFolderButton: '' +
             '<span class="favorite-folder-image btn btn-grey left title" href="javascript:;" title="Add to favorite folder">' +
             '   <span class="icon-grid"></span>' +
@@ -50,16 +57,27 @@
         /** @var {object} Routing vars */
         routes: {
             folders: {
-                regex: '\/user\/(.*)\/favorites(\/.*)?',
-                fragment: 'folders'
+                url: '^\/user\/(.*)\/favorites\/$',
+                fragment: '^#\/folders$',
+                controller: function() { this.foldersListCtrl(); },
+                getUrl: function() {
+                    var accountUrl = Imgur.getInstance()._.auth.url;
+                    return "/user/" + accountUrl + "/favorites/#/folders";
+                }
+            },
+            folderView: {
+                url: '^\/user\/(.*)\/favorites\/$',
+                fragment: '^#\/folders\/(.*)$',
+                controller: function() { this.folderViewCtrl(); },
+                getUrl: function(folderKey) {
+                    var accountUrl = Imgur.getInstance()._.auth.url;
+                    return "/user/" + accountUrl + "/favorites/#/folders/" + folderKey;
+                }
             }
         },
 
-        /** @var {string} Fragment to use for routing */
-        fragment: 'folders',
-
         /** @var {bool} */
-        isFoldersView: false,
+        isFoldersRoute: false,
 
         /**
          * Constructor
@@ -74,22 +92,17 @@
             // Crowbar in some CSS
             this.addStyles();
 
-            // Detect routes
-            this.detectRoute();
+            // Attach the FavoriteFolder instigation button to the UI
+            this.attachFavoriteFolderButton();
 
             // Crowbar in menu items
             this.applyMenuChanges();
 
-            // When in the folder-view Route, add the UI.
-            if (this.isFoldersView) {
-                // Hack: Remove the Favourites page UI
-                this.removeFavoritesUi();
-                // Display the Folders UI
-                this.displayFavouriteFoldersUi();
-            }
+            // Execute routing
+            this.runRouting();
 
-            // Attach the FavoriteFolder instigation button to the UI
-            this.attachFavoriteFolderButton();
+            // Change the selected menu item if necessary
+            this.applyMenuSelection();
         },
 
         /**
@@ -243,21 +256,6 @@
         },
 
         /**
-         * Detect if we're on a Folders route.
-         * sets true/false to this.isFoldersView
-         */
-        detectRoute: function() {
-            // Check the route
-            // Confirm with a check of the fragment, and regex of the URL.
-            // This is pretty loosey-goosey, but it's just to stop us being dumb.
-            var imgur = Imgur.getInstance();
-            var urlRegex = new RegExp(this.routes.folders.regex);
-            this.isFoldersView = (
-                window.location.hash == '#' + this.routes.folders.fragment && urlRegex.test(imgur._.url)
-            );
-        },
-
-        /**
          * Apply additional menu items to the page
          * This is just HTML hacks to add menu bits and bobs.
          */
@@ -291,22 +289,29 @@
 
                 // Build and change page!
                 var accountUrl = Imgur.getInstance()._.auth.url;
-                var fragment = this.routes.folders.fragment;
-
-                // Build URL and try to change URL
-                var targetPath = "/user/" + accountUrl + "/favorites";
-                window.location = targetPath + '#' + fragment;
+                window.location = "/user/" + accountUrl + "/favorites/#/folders";
 
                 // Check if the new URL is the same as the old URL.
                 // If it is, we need to reload the page.
                 // Without this, going from Favourites to Folders (same page) doesn't cause a reload.
-                if (window.location.pathname == targetPath) {
+                var targetRegex = new RegExp(this.routes.folders.url);
+                if (targetRegex.test(window.location.pathname)) {
                     window.location.reload();
                 }
             }, this));
 
+            // Tweak Favourites header if on Favorites page
+            $('#likes .panel-header h2').each(function() {
+                $(this).text('Favorites');
+            });
+        },
+
+        /**
+         * Apply menu selection changes
+         */
+        applyMenuSelection: function() {
             // Correct menu highlights if we're viewing folders
-            if (this.isFoldersView) {
+            if (this.isFoldersRoute) {
 
                 // Menu Sidebar
                 var $panelButtons = $('.panel.menu .textbox.button');
@@ -318,11 +323,6 @@
                 $navMenuItems.removeClass('active');
                 this.el.$foldersUserNav.find('a').addClass('active');
             }
-
-            // Tweak Favourites header if on Favorites page
-            $('#likes .panel-header h2').each(function() {
-                $(this).text('Favorites');
-            });
         },
 
         /**
@@ -341,11 +341,26 @@
          * Display the favourite folders UI
          * This is a react component. Neat!
          */
-        displayFavouriteFoldersUi: function() {
+        displayFavouriteFoldersListUi: function() {
             var $container = $('#content .left .panel');
             imgur._.favouriteFolders = React.renderComponent(
                 ImgurEnhance.FavouriteFolders.View.FolderList({
                     folders: this.folders
+                }),
+                $container.get(0)
+            );
+        },
+
+        /**
+         * Display a single favourite folder
+         * @param {string} folderKey
+         */
+        displayFavouriteFolderViewUi: function(folderKey) {
+            var $container = $('#content .left .panel');
+            imgur._.favouriteFolders = React.renderComponent(
+                ImgurEnhance.FavouriteFolders.View.FolderView({
+                    folders: this.folders,
+                    folderKey: folderKey
                 }),
                 $container.get(0)
             );
@@ -431,8 +446,71 @@
                 }),
                 $('.imgur-enhance-ff-colorbox #cboxLoadedContent').get(0)
             );
-
         },
+
+        /**
+         * Router
+         * - Determine which route, if any, is running
+         */
+        runRouting: function() {
+
+            var imgur = Imgur.getInstance();
+            var currentUrl = imgur._.url;
+            var currentFragment = window.location.hash;
+
+            // Check each route
+            for(var k in this.routes) {
+
+                // Get the route
+                var route = this.routes[k];
+
+                // Construct regexes
+                var urlRegex = new RegExp(route.url);
+                var fragmentRegex = new RegExp(route.fragment);
+
+                // Desired URL?
+                if (urlRegex.test(currentUrl) && fragmentRegex.test(currentFragment)) {
+
+                    // Ensure route is recognised
+                    this.isFoldersRoute = true;
+
+                    // Execute controller
+                    route.controller.apply(this);
+                    break;
+                }
+            }
+
+            // It's OK to not match any route.
+        },
+
+        /**
+         * Controller: List Folders
+         */
+        foldersListCtrl: function() {
+            // Hack: Remove the Favourites page UI
+            this.removeFavoritesUi();
+
+            // Display the Folders UI
+            this.displayFavouriteFoldersListUi();
+        },
+
+        /**
+         * Controller: View Folder
+         */
+        folderViewCtrl: function() {
+            // Hack: Remove the Favourites page UI
+            this.removeFavoritesUi();
+
+            // get the folderKey from the fragment using router
+            // yes yes, if the router was a real router it would pass this to us.
+            var regex = new RegExp(this.routes.folderView.fragment);
+
+            // get folder key
+            var folderKey = regex.exec(window.location.hash)[1];
+
+            // Display the Folders UI
+            this.displayFavouriteFolderViewUi(folderKey);
+        }
 
     });
     Class.addSingleton(ImgurEnhance.FavouriteFolders);

@@ -145,7 +145,7 @@
                 // Clearfix
                 React.DOM.div({className: 'clear'})
             );
-        },
+        }
     });
 
 })();

@@ -6,24 +6,19 @@
 // @author       Dave Newson
 // @include      *://imgur.com
 // @include      *://imgur.com/*
-// @include      *.imgur.com
-// @include      *.imgur.com/*
+// @include      *://*.imgur.com
+// @include      *://*.imgur.com/*
+// @exclude      *://imgur.com/ads*
 // @run-at       document-end
 // @grant        none
 // ==/UserScript==
 
 (function(window, $) {
 
-    // Stop TamperMonkey shitting itself
-    if ($ === undefined || Namespace === undefined || Imgur === undefined) {
-        return;
-    }
-
     /**
      * ImgurEnhance utilities class
      * @Class ImgurEnhance
      */
-    window.ImgurEnhance = function() {};
     window.ImgurEnhance = {
 
         modules: [],
@@ -31,7 +26,7 @@
         /**
          * Modules list
          */
-        getModules: function() {
+        getModules: function () {
             return [
                 ImgurEnhance.Seent,
                 ImgurEnhance.FavouriteFolders,
@@ -43,9 +38,9 @@
          * Initialise all modules
          * Not all modules may be available, so let them fail if they want to.
          */
-        init: function() {
+        init: function () {
             var modules = this.getModules();
-            for(var k in modules) {
+            for (var k in modules) {
 
                 // Skip anything that doesn't exist.
                 if (modules[k] == undefined) {
@@ -72,6 +67,11 @@
         }
     };
 
+    // Stop TamperMonkey shitting itself on invalid pages
+    if ($ === undefined || Namespace === undefined || Imgur === undefined) {
+        return;
+    }
+
     /**
      * On page ready: Initialise all modules
      */
@@ -80,4 +80,4 @@
         window.ImgurEnhance.init();
     });
 
-})(window, window.jQuery, window.imgurEnhance);
+})(window, window.jQuery);

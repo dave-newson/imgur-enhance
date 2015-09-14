@@ -53,7 +53,7 @@
             }
 
             // Don't re-add if already present
-            if (_.findIndex(folder, {h: img.h}) >= 0) {
+            if (_.findIndex(folder.images, {h: img.h}) >= 0) {
                 return;
             }
 
