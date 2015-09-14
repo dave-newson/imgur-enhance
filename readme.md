@@ -37,20 +37,15 @@ Send me your ~~nudes~~ pull requests. Any contributions welcome.
 
 ### Requirements
 
-#### Things you must install
+#### Things you must install yourself
 
  - [NodeJS](http://nodejs.org/)
-
-#### Things that can be automatically installed (see Setup)
-
- - babel
 
 ### Setup
 
  - Fork, clone, etc.
- - ```$ ./run.sh --install``` to install additional node modules
- - ```$ ./run.sh --watch``` to watch /src for changes and compile to /debug
- - ```$ ./run.sh --dist``` to compile a distribution version to /dist.
+ - ```$ npm install``` to install all dependencies
+ - ```$ grunt``` to compile out to /dist.
 
 ### Windows users
 
