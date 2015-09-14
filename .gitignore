@@ -29,3 +29,7 @@ node_modules
 
 ## PhpStorm directory-based project format:
 .idea/
+
+# Ignore debug output
+debug/*
+!debug/empty

@@ -4,7 +4,7 @@
 if [ "$1" = "--install" ]; then
     
     # Validate
-    echo "Checking requirements..."
+    echo "Checking prerequisites ..."
     
     # Validate: Npm must be installed
     if ! type "npm" > /dev/null; then
@@ -14,7 +14,7 @@ if [ "$1" = "--install" ]; then
     fi
     
     # Install
-    echo "Installing requirements for dev..."
+    echo "Installing dev requirements ..."
     
     # Install: babel
     echo "Installing babel"
@@ -22,21 +22,19 @@ if [ "$1" = "--install" ]; then
     
 # Watch
 elif [ "$1" = "--watch" ]; then
-    echo "Wathing src..."
-    babel --watch src/ --out-file dist/imgur-enhance.user.js
+    echo "Watching src for changes (outputs to /debug)..."
+    babel --watch src/ --out-file debug/imgur-enhance.user.js
 
 # Dist
 elif [ "$1" = "--dist" ]; then
-    echo "Building distribution..."
+    echo "Building distribution (outputs to /dist)..."
     babel src/ --out-file dist/imgur-enhance.user.js
     
 # Help
 else
     echo "Help:"
-    echo "  --install     Installs requirements"
-    echo "  --watch       Watch the /src/ directory for changes and compile into /dist"
-    echo "  --dist        Compile /src into /dist"
+    echo "  --install     Installs dev requirements"
+    echo "  --watch       Watch the /src directory for changes and compile into /debug"
+    echo "  --dist        Compile /src into /dist for distribution"
     echo ""
 fi
-
-#
