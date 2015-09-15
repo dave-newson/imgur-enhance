@@ -21,15 +21,6 @@
         /** @var {ImgurEnhance.SeentModel} */
         data: null,
 
-        tpl: {
-            seentToggle: '' +
-            '<li>' +
-            '   <a href="javascript:void(0)" id="seent-hide" title="Hide seen images">' +
-            '       <span></span>' +
-            '   </a>' +
-            '</li>'
-        },
-
         /** @var {object} collection of in-page elements */
         elements: {
             $seentHideItem: null,
@@ -60,6 +51,7 @@
             this.readSeent();
             this.attachGallerySeent();
             this.attachInsideGallerySeent();
+            this.updateSeent();
 
             // Global seent MUST come last
             // due to init of seentHide
@@ -76,6 +68,9 @@
                 "   border-color: #2b2b2b;" +
                 "   background: #000000;" +
                 "}",
+                "#imagelist .seent-hide {" +
+                "   display: none;" +
+                "}",
                 "#imagelist .seent img {" +
                 "   opacity: 0.33;" +
                 "}",
@@ -87,13 +82,16 @@
                 "#imagelist .seent:hover .seent-icon {" +
                 "   display:none;" +
                 "}",
-                "#imagelist .seent .seent-icon { " +
-                "   display: block;" +
+                "#imagelist .seent-icon { " +
+                "   display: none;" +
                 "   position:absolute;" +
                 "   right: 0px; bottom: 0px;" +
                 "   width: 34px; height: 34px;" +
                 "   background: url('http://s.imgur.com/images/site-sprite.png') transparent no-repeat;" +
                 "   background-position: -250px -184px;" +
+                "}",
+                "#imagelist .seent .seent-icon {" +
+                "   display: block;" +
                 "}",
 
                 // Sitebar Img
@@ -106,12 +104,21 @@
                 "}",
 
                 // Seent hide
-                "#content .sort-options #seent-hide span {" +
+                "#content .sort-options #seent-hide .icon-seent {" +
                 "   display: inline-block;" +
                 "   width: 25px; height: 25px;" +
                 "   image-rendering: optimizeQuality;" +
                 "   -ms-interpolation-mode: nearest-neighbor;" +
                 "   background: url(http://s.imgur.com/images/site-sprite.png) -256px -186px no-repeat transparent;" +
+                "}",
+                "#content .sort-options #seent-hide .icon-block {" +
+                "   position: absolute;" +
+                "   top: 4px; left: 3px;" +
+                "   display: block;" +
+                "   width: 20px; height: 20px;" +
+                "   image-rendering: optimizeQuality;" +
+                "   -ms-interpolation-mode: nearest-neighbor;" +
+                "   background: url(http://s.imgur.com/images/site-sprite.png) -290px -216px no-repeat transparent;" +
                 "}",
                 "#content .sort-options .active {" +
                 "   opacity: 0.9;" +
@@ -148,7 +155,8 @@
             // Event: Add seent on click of FP images
             // Attach to static #content
             $('#content').on('click', '.post', function () {
-                $(this).addClass('seent');
+                $(this).attr('data-seent', true);
+                this.updateSeent();
             });
 
             // Event: Add seent on sidebar click
@@ -177,23 +185,18 @@
             // .each means this won't run without the element
             $('#content .sort-options ul').each(function() {
 
-                // Create seent button with click handler
-                var $seentHideItem = $(_this.tpl.seentToggle);
-                _this.elements.$seentHideItem = $seentHideItem;
-                _this.elements.$seentHideButton = $seentHideItem.find('a');
+                // Create a menu item for the button to sit under
+                var $menuItem = $('<li></li>');
 
                 // Add to start of Sort Orders list
                 var $sortOptionsList = $(this);
-                $sortOptionsList.prepend($seentHideItem);
+                $sortOptionsList.prepend($menuItem);
 
-                // Apply Tipsy to Seent toggle, for imgur tooltip style.
-                _this.elements.$seentHideButton.tipsy();
-
-                // Event: On click seent hide, toggle state
-                _this.elements.$seentHideButton.on('click', function() {
-                    // Toggle button and execute hide
-                    _this.toggleSeentHide();
-                });
+                // Add toggle button to menu
+                React.render(
+                    <ImgurEnhance.Seent.View.SeentToggle mode={_this.data.getSeentHide()} onClick={_this.toggleSeentHide.bind(_this)} />,
+                    $menuItem.get(0)
+                );
 
                 // Apply the seent-hide initial state
                 _this.toggleSeentHide(_this.data.getSeentHide());
@@ -208,12 +211,12 @@
             var _this = this;
 
             // On Load: Attach seen styles on FP
-            $('.post').not('.seent').each(function () {
+            $('.post').not('[data-seent]').each(function () {
                 var $post = $(this);
 
                 // Check each date block
                 if (_this.data.hasSeent($post.attr('id'))) {
-                    $post.addClass('seent');
+                    $post.attr('data-seent', true);
                     $post.append('<span class="seent-icon"></span>');
                 }
             });
@@ -239,21 +242,42 @@
         },
 
         /**
-         * Hide or unhide all seent items
-         * @param {boolean} [forceHidden]
+         * Set the mode of the Seent images system
+         * @param {int} mode
          */
-        toggleSeentHide: function(forceHidden) {
-
-            // Get state
-            var $seentListItem = this.elements.$seentHideItem;
-            var state = (forceHidden !== undefined) ? forceHidden : !$seentListItem.hasClass('active');
-
-            // Apply state
-            $seentListItem.toggleClass('active', state);
-            $('.seent').toggle(!state);
+        toggleSeentHide: function(mode) {
 
             // Persist state
-            this.data.setSeentHide(state);
+            this.data.setSeentHide(mode);
+            this.updateSeent();
+        },
+
+        /**
+         * Update seent on page
+         */
+        updateSeent: function() {
+            var mode = this.data.getSeentHide()
+
+            // Get state
+            var $seentItems = $('[data-seent]');
+
+            // 0 = disabled
+            if (mode == 0) {
+                $seentItems.removeClass('seent');
+                $seentItems.removeClass('seent-hide');
+            }
+
+            // 1 = highlight
+            if (mode == 1) {
+                $seentItems.addClass('seent');
+                $seentItems.removeClass('seent-hide');
+            }
+
+            // 2 = hide
+            if (mode == 2) {
+                // Apply hide
+                $seentItems.addClass('seent-hide');
+            }
         }
 
     });
