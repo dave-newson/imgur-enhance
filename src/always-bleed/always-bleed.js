@@ -32,12 +32,14 @@
         },
 
         /**
-         * Fix z-index issue with the background
-         * Without this, it appears on top on certain pages.
+         * Because not all pages have compatible styles, the fullbleed can appear on top in some cases.
+         * This fixes the z-index hand fiddles with the body props to compensate.
+         * Also adds "fixed" because I think it looks nice.
          */
         addStyles: function () {
             this.styleSheet = ImgurEnhance.StyleSheet.create();
-            this.styleSheet.insertRule('#fullbleed-bg {z-index: -1;}', 0);
+            this.styleSheet.insertRule('#fullbleed-bg {z-index: -1; position: fixed; top: 0;}', 0);
+            this.styleSheet.insertRule('body {z-index: -2; position: relative;}', 1);
         }
     });
     Class.addSingleton(ImgurEnhance.AlwaysBleed);
