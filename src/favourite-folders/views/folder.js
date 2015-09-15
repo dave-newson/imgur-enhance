@@ -32,14 +32,17 @@
 
             // Empty? Well..
             if (images.length < 1) {
-                return React.DOM.div({className: 'missing'});
+                return (
+                    <div className='missing'></div>
+                );
             }
 
             // Output up to 4 images
             var output = [];
             for (var k in images) {
+                var src = '//i.imgur.com/' + images[k].t + 'b.jpg';
                 output.push(
-                    React.DOM.img({src: '//i.imgur.com/' + images[k].t + 'b.jpg'})
+                    <img src={src} />
                 );
             }
 
@@ -64,17 +67,15 @@
             title += (title == 1) ? ' image' : ' images';
 
             // Wrapper div
-            return React.DOM.div(
-                {
-                    className: 'folder',
-                    title: title,
-                    'data-folder-id': this.props.id,
-                    onClick: _.bind(this.onFolderClick, this)
-                },
-                this.populateFolderPreview(this.props.folder),
-                React.DOM.div({className: 'folder-info'},
-                    React.DOM.div({className: 'title'}, this.props.folder.name)
-                )
+            return (
+                <div className='folder' title={title} data-folder-id={this.props.id} onClick={this.onFolderClick.bind(this)}>
+                    {
+                        this.populateFolderPreview(this.props.folder)
+                    }
+                    <div className='folder-info'>
+                        <div className='title'>{this.props.folder.name}</div>
+                    </div>
+                </div>
             );
         }
     });

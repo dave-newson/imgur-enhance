@@ -228,7 +228,8 @@
                 '   line-height: 1.2em;' +
                 '   position: absolute;' +
                 '   bottom: 2px; left: 2px;' +
-                '   width: 120px;' +
+                '   width: 130px;' +
+                '   margin: 0' +
                 '}',
 
                 // "Add Folder" background image override
@@ -343,10 +344,8 @@
          */
         displayFavouriteFoldersListUi: function() {
             var $container = $('#content .left .panel');
-            imgur._.favouriteFolders = React.renderComponent(
-                ImgurEnhance.FavouriteFolders.View.FolderList({
-                    folders: this.folders
-                }),
+            React.render(
+                <ImgurEnhance.FavouriteFolders.View.FolderList folders={this.folders} />,
                 $container.get(0)
             );
         },
@@ -357,11 +356,8 @@
          */
         displayFavouriteFolderViewUi: function(folderKey) {
             var $container = $('#content .left .panel');
-            imgur._.favouriteFolders = React.renderComponent(
-                ImgurEnhance.FavouriteFolders.View.FolderView({
-                    folders: this.folders,
-                    folderKey: folderKey
-                }),
+            React.render(
+                <ImgurEnhance.FavouriteFolders.View.FolderView folders={this.folders} folderKey={folderKey} />,
                 $container.get(0)
             );
         },
@@ -436,14 +432,8 @@
             });
 
             // Initialise component under the container
-            imgur._.favouriteFolders = React.renderComponent(
-                ImgurEnhance.FavouriteFolders.View.AddToFavouriteFolderModal({
-                    folders: this.folders,
-                    img: img,
-                    closeModal: function() {
-                        modal.colorbox.close();
-                    }
-                }),
+            React.render(
+                <ImgurEnhance.FavouriteFolders.View.AddToFavouriteFolderModal folders={this.folders} img={img} closeModal={modal.colorbox.close} />,
                 $('.imgur-enhance-ff-colorbox #cboxLoadedContent').get(0)
             );
         },

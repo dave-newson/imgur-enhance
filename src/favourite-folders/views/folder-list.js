@@ -50,32 +50,29 @@
          * Render the initial view
          */
         render: function () {
+            var _this = this;
+            return (
+                <div id="folders" className="folder-list">
+                    <div className="panel-header textbox">
+                        <h2>Favorites by folder</h2>
+                        <div className="clear"></div>
+                    </div>
 
-            return React.DOM.div({id: 'folders', className: 'folder-list'},
-
-                // Folder gallery header
-                React.DOM.div({className: 'panel-header textbox'},
-                    React.DOM.h2({}, "Favorites by folder"),
-                    React.DOM.div({className: 'clear'})
-                ),
-
-                // Folders gallery container
-                React.DOM.div({className: 'thumbs'},
-
-                    // Each folder
-                    this.props.folders.getFolders().map(_.bind(function (folder, index) {
-                        return ImgurEnhance.FavouriteFolders.View.Folder({
-                            id: index,
-                            folder: folder,
-                            onClick: _.bind(function () {
-                                this.onFolderClick(index);
-                            }, this)
-                        });
-                    }, this))
-                ),
-
-                // Clearfix
-                React.DOM.div({className: 'clear'})
+                    <div className="thumbs">
+                        {
+                            // Each folder
+                            this.props.folders.getFolders().map(function (folder, index) {
+                                return (
+                                    <ImgurEnhance.FavouriteFolders.View.Folder
+                                        id={index}
+                                        folder={folder}
+                                        onClick={_this.onFolderClick.bind(_this, index)}/>
+                                );
+                            })
+                        }
+                        <div className="clear"></div>
+                    </div>
+                </div>
             );
         },
 

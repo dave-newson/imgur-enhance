@@ -134,109 +134,98 @@
             });
         },
 
+
+        folderName: function() {
+            if (this.state.folderEdit) {
+                return (
+                    <input type="text" value={this.state.folderName} className="folder-title-edit"
+                           onChange={this.onChangeFolderName}/>
+                );
+            } else {
+                return (
+                    <span>{this.state.folderName}</span>
+                );
+            }
+        },
+
+        folderMode: function() {
+            return (this.state.folderEdit) ? 'Done' : 'Edit folder';
+        },
+
+        showRemoveImageIcon: function(img) {
+            if (this.state.folderEdit) {
+                return (
+                    <div className="icon-remove" onClick={this.removeImage.bind(this, img)}></div>
+                );
+            }
+        },
+
+        showDeleteFolder: function() {
+            if (this.state.folderEdit) {
+                return (
+                    <div className='panel-header textbox'>
+                        <div className='options'>
+                            <ul>
+                                <li>
+                                    <a href="javascript:;" onClick={this.onDeleteFolder}>
+                                        Delete folder
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div className="clear"></div>
+                    </div>
+                );
+            }
+        },
+
+
         /**
          * Render the initial view
          */
         render: function () {
 
+            var _this = this;
+
             // Load and validate folder
             var folder = this.state.folder;
             if (folder === undefined) {
                 // Error, but just chuck bad an empty div.
-                return React.DOM.div({id: 'likes'});
+                return (
+                    <div id="likes"></div>
+                );
             }
 
             // Images in folder
-            return React.DOM.div({id: 'likes'},
-
-                // Folder gallery header
-                React.DOM.div({className: 'panel-header textbox'},
-                    React.DOM.h2({},
-                        "Favorites folder: ",
-                        _.bind(function () {
-
-                            // Edit or view mode?
-                            if (this.state.folderEdit) {
-                                var name = this.state.folderName;
-                                return React.DOM.input({
-                                    className: 'folder-title-edit',
-                                    value: name,
-                                    onChange: this.onChangeFolderName
-                                });
-                            } else {
-                                return folder.name;
-                            }
-
-                        }, this)()
-                    ),
-                    React.DOM.div({className: 'options'},
-                        React.DOM.ul({},
-                            React.DOM.li({},
-                                React.DOM.a({
-                                        href: 'javascript:void(0);',
-                                        onClick: this.onEditFolder
-                                    },
-                                    _.bind(function () {
-
-                                        // Determine text
-                                        if (this.state.folderEdit) {
-                                            return 'View'
-                                        } else {
-                                            return 'Edit';
-                                        }
-
-                                    }, this)()
-                                )
-                            )
-                        )
-                    ),
-                    React.DOM.div({className: 'clear'})
-                ),
-
-                // Images gallery
-                React.DOM.div({className: 'thumbs'},
-
-                    folder.images.map(_.bind(function (img, index) {
-                        return React.DOM.a({
-                                href: this.getFavouriteImagePageUrl(img),
-                                onClick: this.onClickImage
-                            },
-                            React.DOM.img({src: this.getImageUrl(img)}),
-                            _.bind(function () {
-
-                                // Edit mode: show delete button
-                                if (this.state.folderEdit) {
-                                    return React.DOM.div({
-                                        className: 'icon-remove',
-                                        onClick: _.bind(function () {
-                                            this.removeImage(img);
-                                        }, this)
-                                    })
-                                }
-                            }, this)()
-                        );
-                    }, this))
-                ),
-
-                _.bind(function () {
-                    if (this.state.folderEdit) {
-
-                        // Show the Delete Folder panel at the bottom
-                        return React.DOM.div({className: 'panel-header textbox'},
-                            React.DOM.div({className: 'options'},
-                                React.DOM.ul({},
-                                    React.DOM.li({},
-                                        React.DOM.a({
-                                            href: 'javascript:void(0);',
-                                            onClick: this.onDeleteFolder
-                                        }, 'Delete folder')
-                                    )
-                                )
-                            ),
-                            React.DOM.div({className: 'clear'})
-                        );
-                    }
-                }, this)()
+            return (
+                <div id="likes">
+                    <div className="panel-header textbox">
+                        <h2>Favorites folder: {_this.folderName()}</h2>
+                        <div className="options">
+                            <ul>
+                                <li>
+                                    <a href="javascript:;" onClick={this.onEditFolder}>
+                                        {_this.folderMode()}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div className="clear"></div>
+                    </div>
+                    <div className="thumbs">
+                        {
+                            folder.images.map(function (img, index) {
+                                return (
+                                    <a href={_this.getFavouriteImagePageUrl(img)} onClick={_this.onClickImage}>
+                                        <img src={_this.getImageUrl(img)} />
+                                        {_this.showRemoveImageIcon(img)}
+                                    </a>
+                                );
+                            })
+                        }
+                    </div>
+                    {_this.showDeleteFolder()}
+                </div>
             );
         }
     });

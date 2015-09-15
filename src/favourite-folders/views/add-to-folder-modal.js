@@ -97,53 +97,45 @@
          */
         render: function () {
 
+            var _this = this;
+            var addFolder = [];
+            if (this.state.addFolder) {
+                // AddFolder mode or SelectFolder mode?
+                // Show folder info on image
+                addFolder.push(
+                    <img src={this.getImageUrl(this.props.img)} />
+                );
+                addFolder.push(
+                    <div className="folder-info">
+                        <input className="" type="text" onKeyUp={this.createFolder} />
+                    </div>
+                );
+            } else {
+                addFolder.push(
+                    <div className='icon-add'></div>
+                );
+            }
+
             // Show folders index
-            return React.DOM.div({id: 'imgur-enhance-ff', className: 'folder-list'},
-
-                // Folders gallery container
-                React.DOM.div({className: 'thumbs'},
-
-                    // Each folder
-                    this.props.folders.getFolders().map(_.bind(function (folder, index) {
-                        return ImgurEnhance.FavouriteFolders.View.Folder({
-                            id: index,
-                            folder: folder,
-                            onClick: _.bind(function () {
-                                this.onFolderClick(index);
-                            }, this)
-                        });
-                    }, this)),
-
-                    // "Add folder" fake folder
-                    React.DOM.div(
+            return (
+                <div id='imgur-enhance-ff' className='folder-list'>
+                    <div className='thumbs'>
                         {
-                            className: 'folder folder-add',
-                            onClick: _.bind(this.toggleAddFolder, this)
-                        },
-                        _.bind(function () {
-
-                            // AddFolder mode or SelectFolder mode?
-                            if (this.state.addFolder) {
-
-                                // Show folder info on image
-                                return [
-                                    React.DOM.img({src: this.getImageUrl(this.props.img)}),
-                                    React.DOM.div({className: 'folder-info'},
-                                        React.DOM.input({
-                                            onKeyUp: this.createFolder
-                                        })
-                                    )
-                                ];
-                            } else {
-                                // Show the add icon
-                                return React.DOM.div({className: 'icon-add'})
-                            }
-                        }, this)()
-                    )
-                ),
-
-                // Clearfix
-                React.DOM.div({className: 'clear'})
+                            this.props.folders.getFolders().map(function (folder, index) {
+                                return (
+                                    <ImgurEnhance.FavouriteFolders.View.Folder
+                                        id={index}
+                                        folder={folder}
+                                        onClick={_this.onFolderClick.bind(_this, index)} />
+                                );
+                            })
+                        }
+                        <div className='folder folder-add' onClick={this.toggleAddFolder}>
+                            {addFolder}
+                        </div>
+                        <div className="clear"></div>
+                    </div>
+                </div>
             );
         }
     });
