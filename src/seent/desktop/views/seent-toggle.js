@@ -31,9 +31,9 @@
         },
 
         /**
-         * on button state change
+         * On state change
          */
-        onChangeState: function() {
+        componentDidUpdate: function() {
             if (this.state.mode > 0) {
                 this.el.$parentListItem.addClass('active');
             } else {
@@ -87,13 +87,12 @@
          * On Component mount
          */
         componentDidMount: function() {
-            var $this = $(this.getDOMNode());
-
             // store link to li
+            var $this = $(this.getDOMNode());
             this.el.$parentListItem = $this.parent();
 
-            // trigger state change cb to fix li
-            this.onChangeState();
+            // trigger state change cb to fix underly li style
+            this.componentDidUpdate();
 
             // Apply Tipsy to Seent toggle, for imgur tooltip style.
             $this.tipsy();
