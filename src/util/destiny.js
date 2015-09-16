@@ -22,12 +22,24 @@
      *  MyAppPatch.someFunc = function(parent, name) { console.log(name); parent(name); };
      *  MyApp.someFunc('jeff'); // Logs 'jeff' to the console, then opens an alert window.
      *
+     * Class quirks:
+     *  When you point Destiny at a variable which becomes populated by a class, it will automatically
+     *  monkey patch the prototype elements of that class.
+     *  Currently you can't monkey-patch constructors of classes.
+     *  This is because prototypes cannot be replaced with setters, so we can't watch them.
+     *
+     * Class Example:
+     *  MyNamespace.MyApp = function() { }
+     *  MyNamespace.MyApp.prototype = {a:1, b:2}
+     *  Destiny.watchAndPatch(window, 'MyNamespace.MyApp', {c: 3});
+     *  // MyNamespace.MyApp.prototype = {a:1, b:2, c:3}
+     *
      * Write your own fate, rather than being stuck with what you're given.
      *
      * @Class Destiny
      * @constructor
      */
-    Destiny = {
+    var Destiny = {
 
         /**
          * watchAndPatch is used to register an object you want to monkey-patch.
@@ -42,7 +54,7 @@
         watchAndPatch: function(observable, property, patchObject) {
 
             // Split props to array
-            propList = this.propToArray(property);
+            var propList = this.propToArray(property);
             var initProp = propList[0];
 
             // Make the new interceptor
@@ -53,6 +65,9 @@
             interceptor.addHandler(propList, function(targetObject) {
                 return _this.patchObject.apply(_this, [targetObject, patchObject]);
             });
+
+            // Apply with full settings
+            interceptor.apply();
         },
 
         /**
@@ -78,13 +93,19 @@
                 return targetObject;
             }
 
-            // If a function not an object, work on the prototypes
+            // Annoying quirk notice!
+            // We can't override the constant prop "prototype"
+            // So if the target of the patch is a class, we step into the prototype and work on that
+            // Note: This means you can't monkey-patch the constructor!
+            // Note: You must refer to the Class constructor, NOT the class prototype to edit prototypes.
+            // TODO: This above is super hairy and super dodgy and not at all intuitive.
+            var targetRef = targetObject;
             if (typeof targetObject == "function") {
-                targetObject = targetObject.prototype;
+                targetRef = targetObject.prototype;
             }
 
             // Get keys
-            var targetKeys = Object.keys(targetObject);
+            var targetKeys = Object.keys(targetRef);
             var patchKeys = Object.keys(patchObject);
             var keys = targetKeys.concat(patchKeys);
 
@@ -102,10 +123,10 @@
                 if (patchObject.hasOwnProperty(key)) {
 
                     // Monkey-patch or add?
-                    if (targetObject.hasOwnProperty(key)) {
-                        this.patchProp(key, targetObject, patchObject);
+                    if (targetRef.hasOwnProperty(key)) {
+                        this.patchProp(key, targetRef, patchObject);
                     } else {
-                        this.addProp(key, targetObject, patchObject);
+                        this.addProp(key, targetRef, patchObject);
                     }
                 }
             }
@@ -204,20 +225,12 @@
      */
     Destiny.ObjectPropertyInterceptor = function(parent, propertyObject, propertyName) {
 
-        // Don't re-link something that already been linked.
-        if (propertyObject.hasOwnProperty('__opi') && propertyObject.__opi[propertyName] !== undefined) {
-            return;
-        }
-
         // Set object props
         this.parent = parent;
         this.propertyObject = propertyObject;
         this.propertyName = propertyName;
         this.value = this.propertyObject[propertyName];
         this.handlers = [];
-
-        // Apply to the object
-        this.init();
     };
     Destiny.ObjectPropertyInterceptor.prototype = {
 
@@ -230,7 +243,15 @@
         /**
          * Initialise this interceptor on the object
          */
-        init: function() {
+        apply: function() {
+
+            // Don't re-link something that already been linked.
+            if (this.propertyObject.hasOwnProperty('__opi') &&
+                this.propertyObject.__opi.hasOwnProperty(this.propertyName)
+            ) {
+                return;
+            }
+
             // delete existing and take its place.
             if (delete this.propertyObject[this.propertyName]) {
 
@@ -247,6 +268,12 @@
 
                 // Apply destiny
                 this.propertyObject.__opi = this;
+
+                // Use setter to re-apply the value.
+                // This should cause any props on the child object to get applied
+                if (this.value !== undefined) {
+                    this.propertyObject[this.propertyName] = this.value;
+                }
             }
         },
 
@@ -279,7 +306,7 @@
          */
         addHandler: function(pathArray, handler) {
             this.handlers.push({
-                path: propList,
+                path: pathArray,
                 handler: handler
             });
         },
@@ -307,7 +334,7 @@
             // For each handler, if there's no more path, you're supposed to run here.
             for (var i in handlers) {
                 if (handlers[i].path.length == 0) {
-                    value = handlers[i].handler(value)
+                    value = handlers[i].handler(value);
                 }
             }
 
@@ -395,7 +422,8 @@
                 if (childObject.hasOwnProperty('__opi') && childObject.__opi[prop] !== undefined) {
                     childObject.__opi[prop].relinkParent(this);
                 } else {
-                    new Destiny.ObjectPropertyInterceptor(this, childObject, prop);
+                    var interceptor = new Destiny.ObjectPropertyInterceptor(this, childObject, prop);
+                    interceptor.apply();
                 }
             }
         },
