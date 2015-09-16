@@ -1,6 +1,8 @@
 {
   "name": "imgur-enhance",
   "version": "0.0.2",
+  "description": "Adds features to imgur.com we're too lazy to wait for.",
+  "license": "MIT",
   "devDependencies": {
     "gulp": "~3.9.0",
     "gulp-concat-util": "~0.5.2",
