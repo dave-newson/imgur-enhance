@@ -151,6 +151,7 @@
         patchProp: function(propName, objectTarget, objectPatch) {
             if (typeof objectTarget[propName] != 'function') {
                 // Extend to patch non-functions
+                // WARNING: Relies on jQuery being loaded by now.
                 objectTarget[propName] = $.extend(objectTarget[propName], objectPatch[propName]);
             } else {
 
@@ -173,7 +174,7 @@
                     args.unshift(parentFunc);
 
                     // Execute the patch function
-                    objectPatch[propName].apply(_this, args);
+                    return objectPatch[propName].apply(_this, args);
                 };
             }
         },
