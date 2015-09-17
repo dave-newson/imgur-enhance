@@ -120,6 +120,7 @@
          * @param {object} img
          */
         removeImage: function (img) {
+            debugger;
             this.props.folders.removeFavouriteFromFolder(img, this.props.folderKey);
             this.refreshImageCount();
         },
@@ -155,7 +156,7 @@
         showRemoveImageIcon: function(img) {
             if (this.state.folderEdit) {
                 return (
-                    <div className="icon-remove" onClick={this.removeImage.bind(this, img)}></div>
+                    <a href="javascript:;" className="icon-remove" onClick={this.removeImage.bind(this, img)}></a>
                 );
             }
         },

@@ -80,7 +80,7 @@
             }
 
             // Remove item if it's in the folder
-            var index = _.findIndex(folder, {h: img.h});
+            var index = _.findIndex(folder.images, {h: img.h});
             if (index > -1) {
                 folder.images.splice(index, 1);
             }
