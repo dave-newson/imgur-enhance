@@ -1,6 +1,6 @@
 {
   "name": "imgur-enhance",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "Adds features to imgur.com we're too lazy to wait for.",
   "license": "MIT",
   "devDependencies": {

@@ -1440,6 +1440,16 @@ ImgurEnhance.StyleSheet = {
                     React.createElement('div', { className: 'clear' })
                 )
             );
+        },
+
+        /**
+         * On update re-render
+         */
+        componentDidUpdate: function componentDidUpdate() {
+            var $el = $(this.getDOMNode());
+
+            // Grab focus on the input field
+            $el.find('.folder-info input').focus();
         }
     });
 })();
