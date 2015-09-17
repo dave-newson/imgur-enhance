@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imgur-enhance
 // @namespace    http://davenewson.com/
-// @version      0.1
+// @version      0.0.3
 // @description  Enhance Imgur with some hacked in user features because we're impatient people
 // @author       Dave Newson
 // @include      *://imgur.com

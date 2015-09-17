@@ -137,6 +137,16 @@
                     </div>
                 </div>
             );
+        },
+
+        /**
+         * On update re-render
+         */
+        componentDidUpdate: function () {
+            var $el = $(this.getDOMNode());
+
+            // Grab focus on the input field
+            $el.find('.folder-info input').focus();
         }
     });
 
