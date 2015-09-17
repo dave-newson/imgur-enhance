@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imgur-enhance
 // @namespace    http://davenewson.com/
-// @version      0.1
+// @version      0.0.3
 // @description  Enhance Imgur with some hacked in user features because we're impatient people
 // @author       Dave Newson
 // @include      *://imgur.com
@@ -123,128 +123,6 @@
     });
     Class.addSingleton(ImgurEnhance.AlwaysBleed);
 })();
-/**
- * Seent Model
- * Data container for local storage persistence
- * @Class ImgurEnhance.SeentModel
- */
-Namespace('ImgurEnhance.SeentModel');
-ImgurEnhance.SeentModel = function (a) {
-    this.init(a);
-};
-ImgurEnhance.SeentModel.prototype = {
-
-    /**
-     * LocalStorage
-     */
-    storage: null,
-    storageKey: "ImgurEnhance.Seent",
-
-    /**
-     * Hash lifetime values
-     */
-    lifetime: 5 * 86400,
-    currentKey: 0,
-
-    /**
-     * @var {object} data container for localStorage
-     */
-    data: {
-        visited: {},
-        seentHide: false
-    },
-
-    /**
-     * Constructor
-     */
-    init: function init(storage) {
-
-        // Load local storage
-        this.storage = storage;
-        this.data = $.extend(this.data, this.storage.get(this.storageKey));
-
-        // Seent daily grouping key
-        // timestamp = start of day stamp
-        var now = new Date();
-        var startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        this.currentKey = startOfDay / 1000;
-
-        // Prune the hash list
-        this.pruneHashes();
-    },
-
-    /**
-     * Add a hash to be tracked
-     * @param {string} hash
-     */
-    addSeent: function addSeent(hash) {
-
-        // Create container if not present
-        if (this.data.visited[this.currentKey] === undefined) {
-            this.data.visited[this.currentKey] = [];
-        }
-
-        // Add hash if not exists
-        if (!this.hasSeent(hash)) {
-            this.data.visited[this.currentKey].push(hash);
-
-            // Update local storage
-            this.storage.save(this.storageKey, this.data);
-        }
-    },
-
-    /**
-     * Check if an image hash as been seent
-     * @param {string} hash
-     * @return {boolean}
-     */
-    hasSeent: function hasSeent(hash) {
-
-        // Check all date groups
-        for (var k in this.data.visited) {
-
-            // Exists in group?
-            if (this.data.visited[k].indexOf(hash) != -1) {
-                return true;
-            }
-        }
-        return false;
-    },
-
-    /**
-     * Prune the stored seent image hashes
-     * Remove by group, older than lifetime value
-     */
-    pruneHashes: function pruneHashes() {
-        // Check all groups using their key
-        for (var k in this.data.visited) {
-            // Remove entries older than the lifetime
-            if (k + this.lifetime < this.currentKey) {
-                delete this.data.visited[k];
-            }
-        }
-    },
-
-    /**
-     * Set the "SeentHide" state
-     * @param {boolean} state
-     */
-    setSeentHide: function setSeentHide(state) {
-        this.data.seentHide = state;
-
-        // Update local storage
-        this.storage.save(this.storageKey, this.data);
-    },
-
-    /**
-     * Get the "SeentHide" state
-     * @return {boolean}
-     */
-    getSeentHide: function getSeentHide() {
-        return this.data.seentHide;
-    }
-};
-
 ;(function () {
 
     // Only include if Desktop
@@ -637,6 +515,131 @@ ImgurEnhance.SeentModel.prototype = {
     });
     Class.addSingleton(ImgurEnhance.FavouriteFolders);
 })();
+/**
+ * Seent Model
+ * Data container for local storage persistence
+ * @Class ImgurEnhance.SeentModel
+ */
+Namespace('ImgurEnhance.SeentModel');
+ImgurEnhance.SeentModel = function (a) {
+    this.init(a);
+};
+ImgurEnhance.SeentModel.prototype = {
+
+    /**
+     * LocalStorage
+     */
+    storage: null,
+    storageKey: null,
+
+    /**
+     * Hash lifetime values
+     */
+    lifetime: 5 * 86400,
+    currentKey: 0,
+
+    /**
+     * @var {object} data container for localStorage
+     */
+    data: {
+        visited: {},
+        seentHide: false
+    },
+
+    /**
+     * Constructor
+     */
+    init: function init(storage) {
+
+        // Setup storage key
+        this.storageKey = ImgurEnhance.Storage.getStorageKey('Seent', false);
+
+        // Load local storage
+        this.storage = storage;
+        this.data = $.extend(this.data, this.storage.get(this.storageKey));
+
+        // Seent daily grouping key
+        // timestamp = start of day stamp
+        var now = new Date();
+        var startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        this.currentKey = startOfDay / 1000;
+
+        // Prune the hash list
+        this.pruneHashes();
+    },
+
+    /**
+     * Add a hash to be tracked
+     * @param {string} hash
+     */
+    addSeent: function addSeent(hash) {
+
+        // Create container if not present
+        if (this.data.visited[this.currentKey] === undefined) {
+            this.data.visited[this.currentKey] = [];
+        }
+
+        // Add hash if not exists
+        if (!this.hasSeent(hash)) {
+            this.data.visited[this.currentKey].push(hash);
+
+            // Update local storage
+            this.storage.save(this.storageKey, this.data);
+        }
+    },
+
+    /**
+     * Check if an image hash as been seent
+     * @param {string} hash
+     * @return {boolean}
+     */
+    hasSeent: function hasSeent(hash) {
+
+        // Check all date groups
+        for (var k in this.data.visited) {
+
+            // Exists in group?
+            if (this.data.visited[k].indexOf(hash) != -1) {
+                return true;
+            }
+        }
+        return false;
+    },
+
+    /**
+     * Prune the stored seent image hashes
+     * Remove by group, older than lifetime value
+     */
+    pruneHashes: function pruneHashes() {
+        // Check all groups using their key
+        for (var k in this.data.visited) {
+            // Remove entries older than the lifetime
+            if (k + this.lifetime < this.currentKey) {
+                delete this.data.visited[k];
+            }
+        }
+    },
+
+    /**
+     * Set the "SeentHide" state
+     * @param {boolean} state
+     */
+    setSeentHide: function setSeentHide(state) {
+        this.data.seentHide = state;
+
+        // Update local storage
+        this.storage.save(this.storageKey, this.data);
+    },
+
+    /**
+     * Get the "SeentHide" state
+     * @return {boolean}
+     */
+    getSeentHide: function getSeentHide() {
+        return this.data.seentHide;
+    }
+};
+
 (function (window) {
 
     /**
@@ -661,51 +664,24 @@ ImgurEnhance.SeentModel.prototype = {
      *  MyAppPatch.someFunc = function(parent, name) { console.log(name); parent(name); };
      *  MyApp.someFunc('jeff'); // Logs 'jeff' to the console, then opens an alert window.
      *
+     * Class quirks:
+     *  When you point Destiny at a variable which becomes populated by a class, it will automatically
+     *  monkey patch the prototype elements of that class.
+     *  Currently you can't monkey-patch constructors of classes.
+     *  This is because prototypes cannot be replaced with setters, so we can't watch them.
+     *
+     * Class Example:
+     *  MyNamespace.MyApp = function() { }
+     *  MyNamespace.MyApp.prototype = {a:1, b:2}
+     *  Destiny.watchAndPatch(window, 'MyNamespace.MyApp', {c: 3});
+     *  // MyNamespace.MyApp.prototype = {a:1, b:2, c:3}
+     *
      * Write your own fate, rather than being stuck with what you're given.
      *
      * @Class Destiny
      * @constructor
      */
-    var Destiny = function Destiny() {
-        this.attachObjectWatch();
-    };
-    Destiny.prototype = {
-
-        /**
-         * Attach ObjectWatch capability
-         * @link https://gist.github.com/eligrey/384583
-         */
-        attachObjectWatch: function attachObjectWatch() {
-
-            if (!Object.prototype.watch) {
-                Object.defineProperty(Object.prototype, "watch", {
-                    enumerable: false,
-                    configurable: false,
-                    writable: false,
-                    value: function value(prop, handler) {
-                        var oldVal = this[prop];
-                        var newVal = oldVal;
-                        var getter = function getter() {
-                            return newVal;
-                        };
-                        var setter = function setter(val) {
-                            oldVal = newVal;
-                            return newVal = handler.call(this, prop, oldVal, val);
-                        };
-
-                        // can't watch constants
-                        if (delete this[prop]) {
-                            Object.defineProperty(this, prop, {
-                                get: getter,
-                                set: setter,
-                                enumerable: true,
-                                configurable: true
-                            });
-                        }
-                    }
-                });
-            }
-        },
+    var Destiny = {
 
         /**
          * watchAndPatch is used to register an object you want to monkey-patch.
@@ -719,21 +695,21 @@ ImgurEnhance.SeentModel.prototype = {
          */
         watchAndPatch: function watchAndPatch(observable, property, patchObject) {
 
-            // Callback
-            var _this = this;
-            var doPatch = function doPatch(targetObject) {
-                return _this.patchObject(targetObject, patchObject);
-            };
+            // Split props to array
+            var propList = this.propToArray(property);
+            var initProp = propList[0];
 
-            // Apply immediately if the property is already present
-            // otherwise watch for definition
-            if (observable.hasOwnProperty(property)) {
-                return doPatch(observable[property]);
-            } else {
-                observable.watch(property, function (prop, oldVal, val) {
-                    return doPatch(val);
-                });
-            }
+            // Make the new interceptor
+            var interceptor = new Destiny.ObjectPropertyInterceptor(null, observable, initProp);
+
+            // Attach handler
+            var _this = this;
+            interceptor.addHandler(propList, function (targetObject) {
+                return _this.patchObject.apply(_this, [targetObject, patchObject]);
+            });
+
+            // Apply with full settings
+            interceptor.apply();
         },
 
         /**
@@ -750,19 +726,50 @@ ImgurEnhance.SeentModel.prototype = {
             // rather we want to do it when the object properties are defined.
             // Abort if Object.keys.length < 1
             if (Object.keys(targetObject).length < 1) {
-                return;
+                return targetObject;
             }
 
             // We don't want to apply > once.
             // If a class property gets defined twice we might be SOL with this constraint.
             if (targetObject._destinyPatched) {
-                return;
+                return targetObject;
             }
 
+            // Annoying quirk notice!
+            // We can't override the constant prop "prototype"
+            // So if the target of the patch is a class, we step into the prototype and work on that
+            // Note: This means you can't monkey-patch the constructor!
+            // Note: You must refer to the Class constructor, NOT the class prototype to edit prototypes.
+            // TODO: This above is super hairy and super dodgy and not at all intuitive.
+            var targetRef = targetObject;
+            if (typeof targetObject == "function") {
+                targetRef = targetObject.prototype;
+            }
+
+            // Get keys
+            var targetKeys = Object.keys(targetRef);
+            var patchKeys = Object.keys(_patchObject);
+            var keys = targetKeys.concat(patchKeys);
+
+            // Unique keys
+            keys = this.unique(keys);
+
             // Break all of the things!
-            for (var key in targetObject) {
+            // WARNING: NOT a recursive object merge! Supports light patching only!
+            for (var k in keys) {
+
+                // Get key
+                var key = keys[k];
+
+                // Patch from patchObject
                 if (_patchObject.hasOwnProperty(key)) {
-                    this.patchProp(key, targetObject, _patchObject);
+
+                    // Monkey-patch or add?
+                    if (targetRef.hasOwnProperty(key)) {
+                        this.patchProp(key, targetRef, _patchObject);
+                    } else {
+                        this.addProp(key, targetRef, _patchObject);
+                    }
                 }
             }
 
@@ -786,6 +793,7 @@ ImgurEnhance.SeentModel.prototype = {
         patchProp: function patchProp(propName, objectTarget, objectPatch) {
             if (typeof objectTarget[propName] != 'function') {
                 // Extend to patch non-functions
+                // WARNING: Relies on jQuery being loaded by now.
                 objectTarget[propName] = $.extend(objectTarget[propName], objectPatch[propName]);
             } else {
 
@@ -808,16 +816,319 @@ ImgurEnhance.SeentModel.prototype = {
                     args.unshift(parentFunc);
 
                     // Execute the patch function
-                    objectPatch[propName].apply(_this, args);
+                    return objectPatch[propName].apply(_this, args);
                 };
             }
+        },
+
+        /**
+         * Add the specified prop to the object, rather than monkey-patching
+         *
+         * @param {string} propName
+         * @param {object} objectTarget
+         * @param {object} objectPatch
+         */
+        addProp: function addProp(propName, objectTarget, objectPatch) {
+            objectTarget[propName] = objectPatch[propName];
+        },
+
+        /**
+         * Split the dot-dlimited property list to an array
+         * @param {string} prop
+         * @returns {string[]|Array}
+         */
+        propToArray: function splitProp(prop) {
+            return prop.split('.');
+        },
+
+        /**
+         * Make array members unique
+         *
+         * @param {Array} a
+         * @returns {Array}
+         */
+        unique: function unique(a) {
+            return a.reduce(function (p, c) {
+                if (p.indexOf(c) < 0) p.push(c);
+                return p;
+            }, []);
+        }
+    };
+
+    /**
+     * @Class Destiny.ObjectPropertyInterceptor
+     * Used to intercept getter/setter calls and create a tree of getter/settes that can run registered handlers.
+     * A necessary evil because objects keep insisting on moving about and being overwritten.
+     *
+     * @param {Destiny.ObjectPropertyInterceptor|null} parent
+     * @param {Object} propertyObject
+     * @param {string} propertyName
+     * @constructor
+     */
+    Destiny.ObjectPropertyInterceptor = function (parent, propertyObject, propertyName) {
+
+        // Set object props
+        this.parent = parent;
+        this.propertyObject = propertyObject;
+        this.propertyName = propertyName;
+        this.value = this.propertyObject[propertyName];
+        this.handlers = [];
+    };
+    Destiny.ObjectPropertyInterceptor.prototype = {
+
+        parent: null, // Parent setter in the chain
+        propertyObject: null, // Object this prop belongs to
+        propertyName: null, // Name of the property this is acting on
+        value: null, // Value this property stores
+        handlers: [], // Handlers applied directly to this object, to observe
+
+        /**
+         * Initialise this interceptor on the object
+         */
+        apply: function apply() {
+
+            // Don't re-link something that already been linked.
+            if (this.propertyObject.hasOwnProperty('__opi') && this.propertyObject.__opi.hasOwnProperty(this.propertyName)) {
+                return;
+            }
+
+            // delete existing and take its place.
+            if (delete this.propertyObject[this.propertyName]) {
+
+                Object.defineProperty(this.propertyObject, this.propertyName, {
+                    get: this.getter.bind(this),
+                    set: this.setter.bind(this),
+                    enumerable: true,
+                    configurable: true
+                });
+
+                // Apply destiny
+                this.propertyObject.__opi = this;
+
+                // Use setter to re-apply the value.
+                // This should cause any props on the child object to get applied
+                if (this.value !== undefined) {
+                    this.propertyObject[this.propertyName] = this.value;
+                }
+            }
+        },
+
+        /**
+         * Get the value
+         * @return {*}
+         */
+        getter: function getter() {
+            return this.value;
+        },
+
+        /**
+         * Set the value
+         * @param {*} newValue
+         */
+        setter: function setter(newValue) {
+
+            // Run any handlers
+            this.value = this.executeHandlers(newValue);
+
+            // Return the result
+            return this.value;
+        },
+
+        /**
+         * Add a handler
+         *
+         * @param {Array} pathArray
+         * @param {function} handler
+         */
+        addHandler: function addHandler(pathArray, handler) {
+            this.handlers.push({
+                path: pathArray,
+                handler: handler
+            });
+        },
+
+        /**
+         * Execute handlers to occur during setter
+         * Set up any setters on the child that are needed
+         *
+         * @param {*} value
+         */
+        executeHandlers: function executeHandlers(value) {
+
+            // Get all handles that apply to this object
+            var handlers = this.requestWatchTargets([]);
+
+            // Initialise additional setters in the tree, recursively
+            // If the length > 0, then we're in the tree, but we're not the target.
+            for (var h in handlers) {
+                if (handlers[h].path.length > 0) {
+                    this.applyPropertyInterceptorToChild(value, handlers);
+                    break;
+                }
+            }
+
+            // For each handler, if there's no more path, you're supposed to run here.
+            for (var i in handlers) {
+                if (handlers[i].path.length == 0) {
+                    value = handlers[i].handler(value);
+                }
+            }
+
+            return value;
+        },
+
+        /**
+         * Called by children (or self) to get the watch target for a property
+         *
+         * @param childPropArray
+         */
+        requestWatchTargets: function requestWatchTargets(childPropArray) {
+
+            // Add self to list
+            childPropArray.unshift(this.propertyName);
+
+            // List of handles to return
+            var handlers = [];
+
+            // Continue up the tree
+            if (this.parent != null) {
+                handlers = this.parent.requestWatchTargets(childPropArray);
+            }
+
+            // Add any handles at this level pointing to the property structure
+            if (this.handlers.length) {
+                for (var i in this.handlers) {
+
+                    var trimPath = this.handlers[i].path.slice();
+                    trimPath.splice(childPropArray.length);
+
+                    // !!HACK shortcut comparison because no libs
+                    // Might cause mismatch fun
+                    // @link http://stackoverflow.com/questions/7837456/comparing-two-arrays-in-javascript
+                    if (trimPath.toString() == childPropArray.toString()) {
+                        handlers.push({
+                            path: this.handlers[i].path.slice(),
+                            handler: this.handlers[i].handler
+                        });
+                    }
+                }
+            }
+
+            // For every handle which passed up the tree, strip an element
+            for (var j in handlers) {
+                // Splice the first item off
+                var propName = handlers[j].path.splice(0, 1);
+
+                // Throw a wobbler if the path doesn't match
+                if (propName[0] != this.propertyName) {
+                    throw new Error('Bad property. Expected "' + this.propertyName + '" received "' + propName + '".');
+                }
+            }
+
+            return handlers;
+        },
+
+        /**
+         * Apply a property interceptor to [childObject] using paths found in [handlers]
+         *
+         * @param {object} childObject
+         * @param {array} handlers
+         */
+        applyPropertyInterceptorToChild: function applyPropertyInterceptorToChild(childObject, handlers) {
+            // Validate: usable type
+            if (typeof childObject != 'object' && typeof childObject.prototype != 'object') {
+                throw new Error('Variable considered for InterceptorProperty is of incompatible type ' + typeof childObject);
+            }
+
+            // Get list of handlers (unique)
+            var props = {};
+            for (var h in handlers) {
+                props[handlers[h].path[0]] = true;
+            }
+
+            // Instantiate on unique properties
+            for (var prop in props) {
+
+                // re-link parent if OPI already exists
+                // Or walk into child prop
+                if (childObject.hasOwnProperty('__opi') && childObject.__opi[prop] !== undefined) {
+                    childObject.__opi[prop].relinkParent(this);
+                } else {
+                    var interceptor = new Destiny.ObjectPropertyInterceptor(this, childObject, prop);
+                    interceptor.apply();
+                }
+            }
+        },
+
+        /**
+         * Relink the upstream parent relationship.
+         *
+         * @param parent
+         */
+        relinkParent: function relinkParent(parent) {
+            this.parent = parent;
         }
 
     };
 
     // Make Destiny globally available.
-    window.Destiny = new Destiny();
+    window.Destiny = Destiny;
 })(window);
+
+/**
+ * Utility: Storage helper
+ * @Class ImgurEnhance.Storage
+ */
+Namespace('ImgurEnhance.Storage');
+ImgurEnhance.Storage = {
+
+    rootKey: 'ImgurEnhance',
+
+    /**
+     * Create a storage key using the given key.
+     * If isShared is true, the account ID will be prepended.
+     * If isShared is false, but the user isn't logged in, shared target will still be used.
+     *
+     * @param {string} key
+     * @param {bool} isShared
+     * @return {string}
+     */
+    getStorageKey: function getStorageKey(key, isShared) {
+
+        var accountKey = '-1';
+
+        // Try and get the account key when not shared storage
+        if (!isShared) {
+
+            // Desktop method
+            if (Imgur.getInstance) {
+                // Account might not be set. Try and find it.
+                var imgur = Imgur.getInstance();
+                if (imgur) {
+                    var auth = imgur._.auth;
+                    if (auth && auth.id) {
+                        accountKey = auth.id;
+                    }
+                }
+            }
+
+            // Mobile method
+            if (Imgur.Model) {
+                if (Imgur.Model.Account) {
+                    if (Imgur.Model.Account.getInstance) {
+                        var account = Imgur.Model.Account.getInstance();
+                        if (account.id) {
+                            accountKey = account.id;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Structure!
+        return [this.rootKey, key, accountKey].join('.');
+    }
+};
 
 /**
  * Utility: Stylesheet manager
@@ -844,425 +1155,6 @@ ImgurEnhance.StyleSheet = {
 };
 ;(function () {
 
-    // Only include if Mobile
-    if (!ImgurEnhance.isMobile()) {
-        return;
-    }
-
-    /**
-     * Utility: Mobile LocalStorage implementation
-     * Because the Mobile framework is retarded.
-     * This /tries/ to make it align with the one from React.
-     */
-    Namespace('ImgurEnhance.Storage');
-    ImgurEnhance.SeentStorage = function () {
-        this.init();
-    };
-    ImgurEnhance.SeentStorage.prototype = {
-
-        storage: null,
-        cookie: {
-            expires: null,
-            path: '/'
-        },
-
-        /**
-         * Constructor to join Imgur's local storage
-         */
-        init: function init() {
-            this._ = {};
-            this.storage = Imgur.Storage;
-
-            // Set up expires time
-            var c = new Date();
-            c.setTime(c.getTime() + 315569e5);
-            this.cookie.expires = c;
-        },
-
-        /**
-         * Get value
-         * @param {string} key
-         * @return {object}
-         */
-        get: function get(key) {
-            try {
-                return JSON.parse(this.storage.get(key));
-            } catch (e) {
-                return null;
-            }
-        },
-
-        /**
-         * Save value
-         * @param {string} key
-         * @param {object} value
-         */
-        save: function save(key, value) {
-            this.storage.set(key, JSON.stringify(value), this.cookie);
-        }
-    };
-    Imgur.addSingleton(ImgurEnhance.SeentStorage);
-})();
-;(function () {
-
-    // Only include if Mobile
-    if (!ImgurEnhance.isMobile()) {
-        return;
-    }
-
-    /**
-     * Seent for mobile
-     */
-    Namespace('ImgurEnhance.Seent');
-    ImgurEnhance.Seent = function () {
-        this.init();
-    };
-    ImgurEnhance.Seent.prototype = {
-
-        /** @var {Element} */
-        styleSheet: null,
-
-        /** @var {ImgurEnhance.SeentModel} */
-        data: null,
-
-        /**
-         * Initialise Seent
-         */
-        init: function init() {
-
-            // Set up model for storage
-            var storage = ImgurEnhance.SeentStorage.getInstance();
-            this.data = new ImgurEnhance.SeentModel(storage);
-
-            // add CSS styles
-            this.addStyles();
-
-            // Event: on change page, run them again!
-
-            Imgur.Router.getInstance().header.on('change', _.bind(function () {
-                this.executeSeent();
-            }, this));
-
-            // !!HACK!! Event: on Remove Loader
-            // This is a monkey-patch into removeLoader on the Router
-            // as there's no good event to latch onto >:(
-            var cleanUp = Imgur.Router._instance.removeLoader;
-            var _this = this;
-            Imgur.Router._instance.removeLoader = function () {
-                // Run original
-                cleanUp.apply(this);
-
-                // Run seent, with a 500ms delay because something else
-                // around here is delaying things from being ready >:(
-                setTimeout(function () {
-                    _this.executeSeent();
-                }, 500);
-            };
-        },
-
-        /**
-         * Inject stylesheet hack into DOM
-         */
-        addStyles: function addStyles() {
-            var rules = [
-            // FP image seent
-            ".gallery .GalleryItem.seent .GalleryItem-imageContainer {" + "   opacity: 0.4" + "}",
-
-            // FP Icon
-            ".gallery .GalleryItem.seent .seent-icon {" + "   display: block;" + "   position:absolute;" + "   left: -6px; top: 4px;" + "   width: 34px; height: 34px;" + "   background: url('http://s.imgur.com/images/site-sprite.png') transparent no-repeat;" + "   background-position: -250px -184px;" + "}"];
-
-            // Add all rules
-            this.styleSheet = ImgurEnhance.StyleSheet.create();
-            for (var k in rules) {
-                this.styleSheet.insertRule(rules[k], k);
-            }
-        },
-
-        /**
-         * Run seent tasks
-         * Mobile tends to reload the whole view, so do everything.
-         */
-        executeSeent: function executeSeent() {
-            this.readSeent();
-            this.attachGallerySeent();
-        },
-
-        /**
-         * Read the hash of the page and store it to Seent
-         */
-        readSeent: function readSeent() {
-            var hash = Imgur.Router.getInstance().header.id;
-
-            // Can't do anything without a hash
-            if (hash === undefined) {
-                return;
-            }
-
-            // Persist seent value
-            this.data.addSeent(hash);
-        },
-
-        /**
-         * Modify the main gallery screen (where present)
-         */
-        attachGallerySeent: function attachGallerySeent() {
-            var _this = this;
-
-            // On Load: Attach seen styles on FP
-            $('.gallery .GalleryItem').not('.seent').each(function () {
-                var $post = $(this);
-                var $img = $post.find('img[data-id]');
-
-                // Validate found id tag
-                if ($img.length < 1) {
-                    return;
-                };
-
-                // Check hash
-                var hash = $img.attr('data-id');
-                if (_this.data.hasSeent(hash)) {
-                    $post.addClass('seent');
-                    $post.append('<span class="seent-icon"></span>');
-                }
-            });
-        }
-
-    };
-    Imgur.addSingleton(ImgurEnhance.Seent);
-})();
-;(function () {
-
-    // Only include if Desktop
-    if (!ImgurEnhance.isDesktop()) {
-        return;
-    }
-
-    /**
-     * Feature: Seent
-     * Adds a "seen it" feature, modifying the display for items you have seen before.
-     * - Modifies DOM to inject some additional elements
-     * - Adds some toggles in fun places.
-     * - Uses local storage and groups memories by day, with periodic culling.
-     */
-    Namespace('ImgurEnhance.Seent');
-    ImgurEnhance.Seent = Class.extend({
-
-        /** @var {Element} */
-        styleSheet: null,
-
-        /** @var {ImgurEnhance.SeentModel} */
-        data: null,
-
-        /** @var {object} collection of in-page elements */
-        elements: {
-            $seentHideItem: null,
-            $seentHideButton: null
-        },
-
-        /**
-         * Initialise Seent
-         */
-        init: function init() {
-
-            this._ = {};
-
-            // On the off-chance this isn't a gallery page,
-            // like a profile page or something. Abort.
-            if (Imgur.Gallery === undefined) {
-                return;
-            }
-
-            // Set up model with localStorage
-            var storage = new Imgur.Storage.LocalStorage();
-            this.data = new ImgurEnhance.SeentModel(storage);
-
-            // Setup stylsheeys
-            this.addStyles();
-
-            // Seent tasks: Prune old, read page, attach display
-            this.readSeent();
-            this.attachGallerySeent();
-            this.attachInsideGallerySeent();
-            this.updateSeent();
-
-            // Global seent MUST come last
-            // due to init of seentHide
-            this.attachGlobalSeent();
-        },
-
-        /**
-         * Inject stylesheet hacks into DOM
-         */
-        addStyles: function addStyles() {
-            var rules = [
-            // FP image
-            "#imagelist .seent {" + "   border-color: #2b2b2b;" + "   background: #000000;" + "}", "#imagelist .seent-hide {" + "   display: none;" + "}", "#imagelist .seent img {" + "   opacity: 0.33;" + "}", "#imagelist .seent:hover img {" + "   opacity: 1;" + "}",
-
-            // FP Icon
-            "#imagelist .seent:hover .seent-icon {" + "   display:none;" + "}", "#imagelist .seent-icon { " + "   display: none;" + "   position:absolute;" + "   right: 0px; bottom: 0px;" + "   width: 34px; height: 34px;" + "   background: url('http://s.imgur.com/images/site-sprite.png') transparent no-repeat;" + "   background-position: -250px -184px;" + "}", "#imagelist .seent .seent-icon {" + "   display: block;" + "}",
-
-            // Sitebar Img
-            "#side-gallery .nav-image.seent .image-thumb {" + "   opacity: 0.33;" + "}", "#side-gallery .nav-image.seent:hover .image-thumb," + "#side-gallery .nav-image.seent.selected .image-thumb {" + "   opacity: 1;" + "}",
-
-            // Seent hide
-            "#content .sort-options #seent-hide .icon-seent {" + "   display: inline-block;" + "   width: 25px; height: 25px;" + "   image-rendering: optimizeQuality;" + "   -ms-interpolation-mode: nearest-neighbor;" + "   background: url(http://s.imgur.com/images/site-sprite.png) -256px -186px no-repeat transparent;" + "}", "#content .sort-options #seent-hide .icon-block {" + "   position: absolute;" + "   top: 4px; left: 3px;" + "   display: block;" + "   width: 20px; height: 20px;" + "   image-rendering: optimizeQuality;" + "   -ms-interpolation-mode: nearest-neighbor;" + "   background: url(http://s.imgur.com/images/site-sprite.png) -290px -216px no-repeat transparent;" + "}", "#content .sort-options .active {" + "   opacity: 0.9;" + "}"];
-
-            // Add all rules
-            this.styleSheet = ImgurEnhance.StyleSheet.create();
-            for (var k in rules) {
-                this.styleSheet.insertRule(rules[k], k);
-            }
-        },
-
-        /**
-         * Try to read seent out of the current page, and store the hash.
-         */
-        readSeent: function readSeent() {
-            // Can't do anything without a hash
-            if (!imgur._.hash) {
-                return;
-            }
-
-            // Persist seent value
-            this.data.addSeent(imgur._.hash);
-        },
-
-        /**
-         * Attach Seent elements to the global page (static) items.
-         */
-        attachGlobalSeent: function attachGlobalSeent() {
-            var _this = this;
-
-            // Event: Add seent on click of FP images
-            // Attach to static #content
-            $('#content').on('click', '.post', function () {
-                $(this).attr('data-seent', true);
-                this.updateSeent();
-            });
-
-            // Event: Add seent on sidebar click
-            // Attach to static #side-gallery
-            $('#side-gallery').on('click', '.nav-image[data-hash]', function () {
-                $(this).addClass('seent');
-            });
-
-            // Event: Scrollin' on the FP
-            Imgur.Gallery.getInstance()._.emitter.on('new gallery page', this, function () {
-                this.attachGallerySeent();
-            });
-
-            // Event: Changing view image
-            Imgur.Gallery.getInstance()._.emitter.on('current image updated', this, function () {
-                this.readSeent();
-                this.attachInsideGallerySeent();
-            });
-
-            // Event: Scrollin' sidebar on inside gallery
-            Imgur.Gallery.getInstance()._.emitter.on('pageLoad', this, function () {
-                this.attachInsideGallerySeent();
-            });
-
-            // Attach seent toggle to homepage
-            // .each means this won't run without the element
-            $('#content .sort-options ul').each(function () {
-
-                // Create a menu item for the button to sit under
-                var $menuItem = $('<li></li>');
-
-                // Add to start of Sort Orders list
-                var $sortOptionsList = $(this);
-                $sortOptionsList.prepend($menuItem);
-
-                // Add toggle button to menu
-                React.render(React.createElement(ImgurEnhance.Seent.View.SeentToggle, { mode: _this.data.getSeentHide(), onClick: _this.toggleSeentHide.bind(_this) }), $menuItem.get(0));
-
-                // Apply the seent-hide initial state
-                _this.toggleSeentHide(_this.data.getSeentHide());
-            });
-        },
-
-        /**
-         * Attach Seent elements to gallery
-         * Note: May be called multiple times
-         */
-        attachGallerySeent: function attachGallerySeent() {
-            var _this = this;
-
-            // On Load: Attach seen styles on FP
-            $('.post').not('[data-seent]').each(function () {
-                var $post = $(this);
-
-                // Check each date block
-                if (_this.data.hasSeent($post.attr('id'))) {
-                    $post.attr('data-seent', true);
-                    $post.append('<span class="seent-icon"></span>');
-                }
-            });
-        },
-
-        /**
-         * Attach Seent to inside-gallery items
-         * On the right sidebar nav.
-         */
-        attachInsideGallerySeent: function attachInsideGallerySeent() {
-            var _this = this;
-
-            // On Load: Attach seen styles on sidebar nav
-            $('#side-gallery .nav-image[data-hash]').not('.seent').each(function () {
-                var $link = $(this);
-                var hash = $link.attr('data-hash');
-
-                // Check each container
-                if (_this.data.hasSeent(hash)) {
-                    $link.addClass('seent');
-                }
-            });
-        },
-
-        /**
-         * Set the mode of the Seent images system
-         * @param {int} mode
-         */
-        toggleSeentHide: function toggleSeentHide(mode) {
-
-            // Persist state
-            this.data.setSeentHide(mode);
-            this.updateSeent();
-        },
-
-        /**
-         * Update seent on page
-         */
-        updateSeent: function updateSeent() {
-            var mode = this.data.getSeentHide();
-
-            // Get state
-            var $seentItems = $('[data-seent]');
-
-            // 0 = disabled
-            if (mode == 0) {
-                $seentItems.removeClass('seent');
-                $seentItems.removeClass('seent-hide');
-            }
-
-            // 1 = highlight
-            if (mode == 1) {
-                $seentItems.addClass('seent');
-                $seentItems.removeClass('seent-hide');
-            }
-
-            // 2 = hide
-            if (mode == 2) {
-                // Apply hide
-                $seentItems.addClass('seent-hide');
-            }
-        }
-
-    });
-    Class.addSingleton(ImgurEnhance.Seent);
-})();
-;(function () {
-
     // Only include if Desktop
     if (!ImgurEnhance.isDesktop()) {
         return;
@@ -1283,7 +1175,7 @@ ImgurEnhance.StyleSheet = {
          * LocalStorage
          */
         storage: null,
-        storageKey: "ImgurEnhance.FavouriteFolders",
+        storageKey: null,
 
         /**
          * @var {object} data container
@@ -1296,6 +1188,9 @@ ImgurEnhance.StyleSheet = {
          * Constructor
          */
         init: function init(storage) {
+
+            // Setup storage key
+            this.storageKey = ImgurEnhance.Storage.getStorageKey('FavouriteFolders', false);
 
             // Load local storage
             this.storage = storage;
@@ -1973,6 +1868,422 @@ ImgurEnhance.StyleSheet = {
             );
         }
     });
+})();
+;(function () {
+
+    // Only include if Desktop
+    if (!ImgurEnhance.isDesktop()) {
+        return;
+    }
+
+    /**
+     * Feature: Seent
+     * Adds a "seen it" feature, modifying the display for items you have seen before.
+     * - Modifies DOM to inject some additional elements
+     * - Adds some toggles in fun places.
+     * - Uses local storage and groups memories by day, with periodic culling.
+     */
+    Namespace('ImgurEnhance.Seent');
+    ImgurEnhance.Seent = Class.extend({
+
+        /** @var {Element} */
+        styleSheet: null,
+
+        /** @var {ImgurEnhance.SeentModel} */
+        data: null,
+
+        /** @var {object} collection of in-page elements */
+        elements: {
+            $seentHideItem: null,
+            $seentHideButton: null
+        },
+
+        /**
+         * Initialise Seent
+         */
+        init: function init() {
+
+            this._ = {};
+
+            // On the off-chance this isn't a gallery page,
+            // like a profile page or something. Abort.
+            if (Imgur.Gallery === undefined) {
+                return;
+            }
+
+            // Set up model with localStorage
+            var storage = new Imgur.Storage.LocalStorage();
+            this.data = new ImgurEnhance.SeentModel(storage);
+
+            // Setup stylsheeys
+            this.addStyles();
+
+            // Seent tasks: Prune old, read page, attach display
+            this.readSeent();
+            this.attachGallerySeent();
+            this.attachInsideGallerySeent();
+            this.updateSeent();
+
+            // Global seent MUST come last
+            // due to init of seentHide
+            this.attachGlobalSeent();
+        },
+
+        /**
+         * Inject stylesheet hacks into DOM
+         */
+        addStyles: function addStyles() {
+            var rules = [
+            // FP image
+            "#imagelist .seent {" + "   border-color: #2b2b2b;" + "   background: #000000;" + "}", "#imagelist .seent-hide {" + "   display: none;" + "}", "#imagelist .seent img {" + "   opacity: 0.33;" + "}", "#imagelist .seent:hover img {" + "   opacity: 1;" + "}",
+
+            // FP Icon
+            "#imagelist .seent:hover .seent-icon {" + "   display:none;" + "}", "#imagelist .seent-icon { " + "   display: none;" + "   position:absolute;" + "   right: 0px; bottom: 0px;" + "   width: 34px; height: 34px;" + "   background: url('http://s.imgur.com/images/site-sprite.png') transparent no-repeat;" + "   background-position: -250px -184px;" + "}", "#imagelist .seent .seent-icon {" + "   display: block;" + "}",
+
+            // Sitebar Img
+            "#side-gallery .nav-image.seent .image-thumb {" + "   opacity: 0.33;" + "}", "#side-gallery .nav-image.seent:hover .image-thumb," + "#side-gallery .nav-image.seent.selected .image-thumb {" + "   opacity: 1;" + "}",
+
+            // Seent hide
+            "#content .sort-options #seent-hide .icon-seent {" + "   display: inline-block;" + "   width: 25px; height: 25px;" + "   image-rendering: optimizeQuality;" + "   -ms-interpolation-mode: nearest-neighbor;" + "   background: url(http://s.imgur.com/images/site-sprite.png) -256px -186px no-repeat transparent;" + "}", "#content .sort-options #seent-hide .icon-block {" + "   position: absolute;" + "   top: 4px; left: 3px;" + "   display: block;" + "   width: 20px; height: 20px;" + "   image-rendering: optimizeQuality;" + "   -ms-interpolation-mode: nearest-neighbor;" + "   background: url(http://s.imgur.com/images/site-sprite.png) -290px -216px no-repeat transparent;" + "}", "#content .sort-options .active {" + "   opacity: 0.9;" + "}"];
+
+            // Add all rules
+            this.styleSheet = ImgurEnhance.StyleSheet.create();
+            for (var k in rules) {
+                this.styleSheet.insertRule(rules[k], k);
+            }
+        },
+
+        /**
+         * Try to read seent out of the current page, and store the hash.
+         */
+        readSeent: function readSeent() {
+            // Can't do anything without a hash
+            if (!imgur._.hash) {
+                return;
+            }
+
+            // Persist seent value
+            this.data.addSeent(imgur._.hash);
+        },
+
+        /**
+         * Attach Seent elements to the global page (static) items.
+         */
+        attachGlobalSeent: function attachGlobalSeent() {
+            var _this = this;
+
+            // Event: Add seent on click of FP images
+            // Attach to static #content
+            $('#content').on('click', '.post', function () {
+                $(this).attr('data-seent', true);
+                _this.updateSeent();
+            });
+
+            // Event: Add seent on sidebar click
+            // Attach to static #side-gallery
+            $('#side-gallery').on('click', '.nav-image[data-hash]', function () {
+                $(this).addClass('seent');
+            });
+
+            // Event: Scrollin' on the FP
+            Imgur.Gallery.getInstance()._.emitter.on('new gallery page', this, function () {
+                this.attachGallerySeent();
+            });
+
+            // Event: Changing view image
+            Imgur.Gallery.getInstance()._.emitter.on('current image updated', this, function () {
+                this.readSeent();
+                this.attachInsideGallerySeent();
+            });
+
+            // Event: Scrollin' sidebar on inside gallery
+            Imgur.Gallery.getInstance()._.emitter.on('pageLoad', this, function () {
+                this.attachInsideGallerySeent();
+            });
+
+            // Attach seent toggle to homepage
+            // .each means this won't run without the element
+            $('#content .sort-options ul').each(function () {
+
+                // Create a menu item for the button to sit under
+                var $menuItem = $('<li></li>');
+
+                // Add to start of Sort Orders list
+                var $sortOptionsList = $(this);
+                $sortOptionsList.prepend($menuItem);
+
+                // Add toggle button to menu
+                React.render(React.createElement(ImgurEnhance.Seent.View.SeentToggle, { mode: _this.data.getSeentHide(), onClick: _this.toggleSeentHide.bind(_this) }), $menuItem.get(0));
+
+                // Apply the seent-hide initial state
+                _this.toggleSeentHide(_this.data.getSeentHide());
+            });
+        },
+
+        /**
+         * Attach Seent elements to gallery
+         * Note: May be called multiple times
+         */
+        attachGallerySeent: function attachGallerySeent() {
+            var _this = this;
+
+            // On Load: Attach seen styles on FP
+            $('.post').not('[data-seent]').each(function () {
+                var $post = $(this);
+
+                // Check each date block
+                if (_this.data.hasSeent($post.attr('id'))) {
+                    $post.attr('data-seent', true);
+                    $post.append('<span class="seent-icon"></span>');
+                }
+            });
+        },
+
+        /**
+         * Attach Seent to inside-gallery items
+         * On the right sidebar nav.
+         */
+        attachInsideGallerySeent: function attachInsideGallerySeent() {
+            var _this = this;
+
+            // On Load: Attach seen styles on sidebar nav
+            $('#side-gallery .nav-image[data-hash]').not('.seent').each(function () {
+                var $link = $(this);
+                var hash = $link.attr('data-hash');
+
+                // Check each container
+                if (_this.data.hasSeent(hash)) {
+                    $link.addClass('seent');
+                }
+            });
+        },
+
+        /**
+         * Set the mode of the Seent images system
+         * @param {int} mode
+         */
+        toggleSeentHide: function toggleSeentHide(mode) {
+
+            // Persist state
+            this.data.setSeentHide(mode);
+            this.updateSeent();
+        },
+
+        /**
+         * Update seent on page
+         */
+        updateSeent: function updateSeent() {
+            var mode = this.data.getSeentHide();
+
+            // Get state
+            var $seentItems = $('[data-seent]');
+
+            // 0 = disabled
+            if (mode == 0) {
+                $seentItems.removeClass('seent');
+                $seentItems.removeClass('seent-hide');
+            }
+
+            // 1 = highlight
+            if (mode == 1) {
+                $seentItems.addClass('seent');
+                $seentItems.removeClass('seent-hide');
+            }
+
+            // 2 = hide
+            if (mode == 2) {
+                // Apply hide
+                $seentItems.addClass('seent-hide');
+            }
+        }
+
+    });
+    Class.addSingleton(ImgurEnhance.Seent);
+})();
+;(function () {
+
+    // Only include if Mobile
+    if (!ImgurEnhance.isMobile()) {
+        return;
+    }
+
+    /**
+     * Utility: Mobile LocalStorage implementation
+     * Because the Mobile framework is retarded.
+     * This /tries/ to make it align with the one from React.
+     */
+    Namespace('ImgurEnhance.Storage');
+    ImgurEnhance.SeentStorage = function () {
+        this.init();
+    };
+    ImgurEnhance.SeentStorage.prototype = {
+
+        storage: null,
+        cookie: {
+            expires: null,
+            path: '/'
+        },
+
+        /**
+         * Constructor to join Imgur's local storage
+         */
+        init: function init() {
+            this._ = {};
+            this.storage = Imgur.Storage;
+
+            // Set up expires time
+            var c = new Date();
+            c.setTime(c.getTime() + 315569e5);
+            this.cookie.expires = c;
+        },
+
+        /**
+         * Get value
+         * @param {string} key
+         * @return {object}
+         */
+        get: function get(key) {
+            try {
+                return JSON.parse(this.storage.get(key));
+            } catch (e) {
+                return null;
+            }
+        },
+
+        /**
+         * Save value
+         * @param {string} key
+         * @param {object} value
+         */
+        save: function save(key, value) {
+            this.storage.set(key, JSON.stringify(value), this.cookie);
+        }
+    };
+    Imgur.addSingleton(ImgurEnhance.SeentStorage);
+})();
+;(function () {
+
+    // Only include if Mobile
+    if (!ImgurEnhance.isMobile()) {
+        return;
+    }
+
+    // Observe: GalleryItem
+    Destiny.watchAndPatch(window, 'Imgur.View.GalleryItem', {
+        render: function render(parent) {
+            var content = parent();
+
+            // Apply seen to gallery item
+            if (content.model && content.el) {
+                ImgurEnhance.Seent.getInstance().attachySeentToGalleryItem(content.el, content.model.id);
+            }
+            return content;
+        }
+    });
+
+    // Observe: GalleryInside
+    Destiny.watchAndPatch(window, 'Imgur.View.GalleryInside', {
+        render: function render(parent) {
+            var content = parent();
+
+            // Apply seent read
+            if (content.model) {
+                ImgurEnhance.Seent.getInstance().trackSeent(content.model.id);
+            }
+
+            return content;
+        }
+    });
+
+    /**
+     * Seent for mobile
+     */
+    Namespace('ImgurEnhance.Seent');
+    ImgurEnhance.Seent = function () {
+        this.init();
+    };
+    ImgurEnhance.Seent.prototype = {
+
+        /** @var {Element} */
+        styleSheet: null,
+
+        /** @var {ImgurEnhance.SeentModel} */
+        data: null,
+
+        /**
+         * Initialise Seent
+         */
+        init: function init() {
+
+            // Set up model for storage
+            var storage = ImgurEnhance.SeentStorage.getInstance();
+            this.data = new ImgurEnhance.SeentModel(storage);
+
+            // add CSS styles
+            this.addStyles();
+        },
+
+        /**
+         * Inject stylesheet hack into DOM
+         */
+        addStyles: function addStyles() {
+            var rules = [
+            // FP image seent
+            ".gallery .GalleryItem.seent .GalleryItem-imageContainer {" + "   opacity: 0.4" + "}",
+
+            // FP Icon
+            ".gallery .GalleryItem.seent .seent-icon {" + "   display: block;" + "   position:absolute;" + "   left: -6px; top: 4px;" + "   width: 34px; height: 34px;" + "   background: url('http://s.imgur.com/images/site-sprite.png') transparent no-repeat;" + "   background-position: -250px -184px;" + "}"];
+
+            // Add all rules
+            this.styleSheet = ImgurEnhance.StyleSheet.create();
+            for (var k in rules) {
+                this.styleSheet.insertRule(rules[k], k);
+            }
+        },
+
+        /**
+         * Read the hash of the page and store it to Seent
+         * @param {string} hash
+         */
+        trackSeent: function trackSeent(hash) {
+
+            // Can't do anything without a hash
+            if (!hash) {
+                return;
+            }
+
+            // Persist seent value
+            this.data.addSeent(hash);
+        },
+
+        /**
+         * Modify the main gallery screen (where present)
+         * @param {DOMElement} domElement
+         */
+        attachySeentToGalleryItem: function attachGallerySeent(domElement, hash) {
+            var _this = this;
+            $element = $(domElement);
+
+            // Attach seen styles on FP
+            $element.find('.GalleryItem').not('.seent').each(function () {
+                var $post = $(this);
+                var $img = $post.find('img');
+
+                // Validate found id tag
+                if ($img.length < 1) {
+                    return;
+                }
+
+                // Check hash
+                if (_this.data.hasSeent(hash)) {
+                    $post.addClass('seent');
+                    $post.append('<span class="seent-icon"></span>');
+                }
+            });
+        }
+
+    };
+    Imgur.addSingleton(ImgurEnhance.Seent);
 })();
 ;(function () {
 

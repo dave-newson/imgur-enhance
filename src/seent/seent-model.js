@@ -13,7 +13,7 @@ ImgurEnhance.SeentModel.prototype = {
      * LocalStorage
      */
     storage: null,
-    storageKey: "ImgurEnhance.Seent",
+    storageKey: null,
 
     /**
      * Hash lifetime values
@@ -33,6 +33,9 @@ ImgurEnhance.SeentModel.prototype = {
      * Constructor
      */
     init: function(storage) {
+
+        // Setup storage key
+        this.storageKey = ImgurEnhance.Storage.getStorageKey('Seent', false);
 
         // Load local storage
         this.storage = storage;

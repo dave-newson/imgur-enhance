@@ -20,7 +20,7 @@
          * LocalStorage
          */
         storage: null,
-        storageKey: "ImgurEnhance.FavouriteFolders",
+        storageKey: null,
 
         /**
          * @var {object} data container
@@ -33,6 +33,9 @@
          * Constructor
          */
         init: function (storage) {
+
+            // Setup storage key
+            this.storageKey = ImgurEnhance.Storage.getStorageKey('FavouriteFolders', false);
 
             // Load local storage
             this.storage = storage;

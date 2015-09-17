@@ -5,6 +5,33 @@
         return;
     }
 
+    // Observe: GalleryItem
+    Destiny.watchAndPatch(window, 'Imgur.View.GalleryItem', {
+        render: function render(parent) {
+            var content = parent();
+
+            // Apply seen to gallery item
+            if (content.model && content.el) {
+                ImgurEnhance.Seent.getInstance().attachySeentToGalleryItem(content.el, content.model.id);
+            }
+            return content;
+        }
+    });
+
+    // Observe: GalleryInside
+    Destiny.watchAndPatch(window, 'Imgur.View.GalleryInside', {
+        render: function(parent) {
+            var content = parent();
+
+            // Apply seent read
+            if (content.model) {
+                ImgurEnhance.Seent.getInstance().trackSeent(content.model.id);
+            }
+
+            return content;
+        }
+    });
+
     /**
      * Seent for mobile
      */
@@ -31,28 +58,6 @@
 
             // add CSS styles
             this.addStyles();
-
-            // Event: on change page, run them again!
-
-            Imgur.Router.getInstance().header.on('change', _.bind(function() {
-                this.executeSeent();
-            }, this));
-
-            // !!HACK!! Event: on Remove Loader
-            // This is a monkey-patch into removeLoader on the Router
-            // as there's no good event to latch onto >:(
-            var cleanUp = Imgur.Router._instance.removeLoader;
-            var _this = this;
-            Imgur.Router._instance.removeLoader = function() {
-                // Run original
-                cleanUp.apply(this);
-
-                // Run seent, with a 500ms delay because something else
-                // around here is delaying things from being ready >:(
-                setTimeout(function() {
-                    _this.executeSeent();
-                }, 500);
-            };
         },
 
         /**
@@ -84,22 +89,13 @@
         },
 
         /**
-         * Run seent tasks
-         * Mobile tends to reload the whole view, so do everything.
-         */
-        executeSeent: function() {
-            this.readSeent();
-            this.attachGallerySeent();
-        },
-
-        /**
          * Read the hash of the page and store it to Seent
+         * @param {string} hash
          */
-        readSeent: function() {
-            var hash = Imgur.Router.getInstance().header.id;
+        trackSeent: function(hash) {
 
             // Can't do anything without a hash
-            if (hash === undefined) {
+            if (!hash) {
                 return;
             }
 
@@ -109,26 +105,28 @@
 
         /**
          * Modify the main gallery screen (where present)
+         * @param {DOMElement} domElement
          */
-        attachGallerySeent: function() {
+        attachySeentToGalleryItem: function attachGallerySeent(domElement, hash) {
             var _this = this;
+            $element = $(domElement);
 
-            // On Load: Attach seen styles on FP
-            $('.gallery .GalleryItem').not('.seent').each(function () {
+            // Attach seen styles on FP
+            $element.find('.GalleryItem').not('.seent').each(function () {
                 var $post = $(this);
-                var $img = $post.find('img[data-id]');
+                var $img = $post.find('img');
 
                 // Validate found id tag
-                if ($img.length < 1) { return; };
+                if ($img.length < 1) {
+                    return;
+                }
 
                 // Check hash
-                var hash = $img.attr('data-id');
                 if (_this.data.hasSeent(hash)) {
                     $post.addClass('seent');
                     $post.append('<span class="seent-icon"></span>');
                 }
             });
-
         }
 
     };
