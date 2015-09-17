@@ -156,7 +156,7 @@
             // Attach to static #content
             $('#content').on('click', '.post', function () {
                 $(this).attr('data-seent', true);
-                this.updateSeent();
+                _this.updateSeent();
             });
 
             // Event: Add seent on sidebar click
