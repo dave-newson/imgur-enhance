@@ -8,6 +8,8 @@ Adds various user-demanded features because we're too impatient to wait for nice
 
 ## Installation
 
+[Latest Release](https://github.com/dave-newson/imgur-enhance/raw/release/dist/imgur-enhance.user.js)
+
 *Imgur Enhance* is a user-script (javascript that runs over the top of the site).
 
 ### Supported Browsers
