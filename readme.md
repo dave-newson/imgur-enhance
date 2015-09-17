@@ -1,56 +1,37 @@
-# Imgur, Enhance!
+[](https://github.com/dave-newson/imgur-enhance/raw/release/docs/assets/imgur-enhance.png)
 
-Add various user-demanded features because we're too impatient to wait for nice things.
+Adds various user-demanded features because we're too impatient to wait for nice things.
 
 - *Seent*, highlights items you've already looked at
-- *AlwaysBleed*, ensures the "fullbleed-bg" background gradient is always present.
 - *Favorite Folders*, for grouping favourites into folders.
+- *AlwaysBleed*, ensures the "fullbleed-bg" background gradient is always present.
 
 ## Installation
 
-TODO: Fill these out.
+*Imgur Enhance* is a user-script (javascript that runs over the top of the site).
 
-### Chrome
+### Supported Browsers
+ - [Chrome](docs/install/chrome.md)
+ - [Firefox](docs/install/firefox.md)
+ - [Android](docs/install/android.md)
 
-Use TamperMonkey.
-
-### Firefox
-
-Use GreaseMonkey.
-
-### Android
-
-Chrome doesn't support plugins.
-Use Dolphin and TamperMonkey.
-
-### iOS
-
-I have no idea.
+### Your guess is as good as mine
+ - [Safari](docs/install/safari.md)
+ - [Internet Explorer](docs/install/internet-explorer.md)
+ - [iOS] (docs/install/ios.md)
 
 ## Support
 
-Please report all bugs in the issue tracker.
+Please report all bugs and feature requests in the [issue tracker](https://github.com/dave-newson/imgur-enhance/issues).
 
 ## Contributing
 
-Send me your ~~nudes~~ pull requests. Any contributions welcome.
+See the [developer guide](docs/dev/readme.md).
 
-### Requirements
-
-#### Things you must install yourself
-
- - [NodeJS](http://nodejs.org/)
-
-### Setup
-
- - Fork, clone, etc.
- - ```$ npm install``` to install all dependencies
- - ```$ grunt``` to compile out to /dist.
-
-### Windows users
-
-In order to run the shell scripts you'll need something like [Git for Windows](http://git-scm.com/), which includes cygwin.
+Send me your ~~nudes~~ [pull requests](https://github.com/dave-newson/imgur-enhance/pulls). Any contributions welcome.
 
 ## License
 
-Licensed under the MIT License.
+Licensed under the [MIT License](LICENSE).
+
+If you don't know what that means, it means you can do everything except sell it.
