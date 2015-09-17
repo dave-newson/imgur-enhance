@@ -1,4 +1,4 @@
-[](https://github.com/dave-newson/imgur-enhance/raw/release/docs/assets/imgur-enhance.png)
+[](https://raw.githubusercontent.com/dave-newson/imgur-enhance/release/docs/assets/imgur-enhance.png)
 
 Adds various user-demanded features because we're too impatient to wait for nice things.
 
