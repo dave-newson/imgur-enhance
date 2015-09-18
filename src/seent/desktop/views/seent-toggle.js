@@ -64,9 +64,9 @@
         getIcon: function() {
 
             var icon = [];
-            icon.push(<span className="icon-seent"></span>);
+            icon.push(<span key={1} className="icon-seent"></span>);
             if (this.state.mode == 2) {
-                icon.push(<span className="icon-block"></span>);
+                icon.push(<span key={2} className="icon-block"></span>);
             }
             return icon;
         },
