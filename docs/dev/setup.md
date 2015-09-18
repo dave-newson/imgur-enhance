@@ -11,7 +11,7 @@
 
 ## Deployment
 
- - ```$ grunt``` to compile out to /dist.
+ - ```$ gulp``` to compile out to /dist.
 
 # Specific platform stuff
 

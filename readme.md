@@ -22,15 +22,20 @@ Adds various user-demanded features because we're too impatient to wait for nice
  - [Internet Explorer](docs/install/internet-explorer.md)
  - [iOS] (docs/install/ios.md)
 
-## Support
+## Feature Requests
 
-Please report all bugs and feature requests in the [issue tracker](https://github.com/dave-newson/imgur-enhance/issues).
+Please check the [https://github.com/dave-newson/imgur-enhance/wiki/Feature-Requests](Feature Requests) wiki page first.
+If a feature is not in the wiki, feel free to request it in the [issue tracker](https://github.com/dave-newson/imgur-enhance/issues).
+
+## Bugs and Support
+
+Please report bugs in the [issue tracker](https://github.com/dave-newson/imgur-enhance/issues).
 
 ## Contributing
 
-See the [developer guide](docs/dev/readme.md).
-
 Send me your ~~nudes~~ [pull requests](https://github.com/dave-newson/imgur-enhance/pulls). Any contributions welcome.
+
+See the [developer guide](docs/dev/readme.md) for more information.
 
 ## License
 

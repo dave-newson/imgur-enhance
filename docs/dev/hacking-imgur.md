@@ -53,3 +53,50 @@ arguments, and what you do with the returned data.
 In the case of *Seent*, we attach further HTML to the raw elements created during the React render cycle.
 Like magic.
 
+
+# Best Practices
+
+There's a lot Imgur can do to shit on this script, so we want to try and play nice with their code.
+To that end, please try to obey the following best practice rules.
+
+## Allow for graceful failure
+
+We're building a house on the sand, and it's constantly shifting. We need to allow our code to gracefully fail when
+ an update occurs to the Imgur source, so that people using this script aren't left with a broken website.
+
+### Element checking
+
+Before a module is loaded, you may want to abort it due to an element not existing in the source.
+This can be achieved as follows:
+
+```javascript
+if (document.querySelector("#elemId")) {
+    return
+}
+```
+
+During execution, you can check if an element exists with jQuery, via either of the following:
+```javascript
+$('element').each(function() {
+   // ... only runs if the element is found
+});
+if ($('element').length) {
+   // ... only runs if the element is found
+}
+```
+
+## Don't cause API Requests
+
+We don't want to risk overloading imgur's API in the name of adding features, as if we become the source of problems on
+ their end, they will shut us down.
+
+For this reason, don't make any API requests to Imgur outside of what their own code decides to do.
+If a feature causes excessive loading where normally Imgur would not, figure out a way to prevent it.
+
+## Don't make external requests, or require external resources
+
+This includes importing resources, scripts, storing or requesting data from another website, or making custom requests
+direct to Imgur's API.  We don't want to introduce anything to this codebase that could be misconstrued as a security
+flaw, monitoring, or generally a liability to the end-user.
+
+In some cases this will mean sacrificing functionality.

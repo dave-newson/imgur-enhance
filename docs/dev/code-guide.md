@@ -86,7 +86,7 @@ The only solution left to us is LocalStorage, which if you don't know is like Co
 I'm super lazy, so rather than roll my own code I decided to hijack Imgur's own LocalStorage class.
 
 #### Desktop
-```
+```javascript
 var key = "ImgurEnhance.MyKey"
 var value = {a:1, b:2};
 
