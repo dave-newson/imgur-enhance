@@ -120,7 +120,6 @@
          * @param {object} img
          */
         removeImage: function (img) {
-            debugger;
             this.props.folders.removeFavouriteFromFolder(img, this.props.folderKey);
             this.refreshImageCount();
         },
