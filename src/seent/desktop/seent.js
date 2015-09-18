@@ -5,6 +5,25 @@
         return;
     }
 
+    // Observe: GalleryItem
+    Destiny.watchAndPatch(window, 'Imgur.Gallery', {
+        handleResponse: function handleResponse() {
+            var args = Array.prototype.slice.call(arguments);
+            var parent = args.shift();
+
+            // Run original parent cleanly
+            var ret = parent.call(this, args);
+
+            // Apply seent
+            var $src = $(this._.el.outside.content);
+            var seent = ImgurEnhance.Seent.getInstance();
+            seent.attachGallerySeent($src);
+            seent.updateSeent();
+
+            return ret;
+        }
+    });
+
     /**
      * Feature: Seent
      * Adds a "seen it" feature, modifying the display for items you have seen before.
@@ -49,7 +68,7 @@
 
             // Seent tasks: Prune old, read page, attach display
             this.readSeent();
-            this.attachGallerySeent();
+            this.attachGallerySeent($('body'));
             this.attachInsideGallerySeent();
             this.updateSeent();
 
@@ -165,11 +184,6 @@
                 $(this).addClass('seent');
             });
 
-            // Event: Scrollin' on the FP
-            Imgur.Gallery.getInstance()._.emitter.on('new gallery page', this, function () {
-                this.attachGallerySeent();
-            });
-
             // Event: Changing view image
             Imgur.Gallery.getInstance()._.emitter.on('current image updated', this, function () {
                 this.readSeent();
@@ -206,12 +220,13 @@
         /**
          * Attach Seent elements to gallery
          * Note: May be called multiple times
+         * @param {object} $source
          */
-        attachGallerySeent: function () {
+        attachGallerySeent: function ($source) {
             var _this = this;
 
             // On Load: Attach seen styles on FP
-            $('.post').not('[data-seent]').each(function () {
+            $source.find('.post').not('[data-seent]').each(function () {
                 var $post = $(this);
 
                 // Check each date block
