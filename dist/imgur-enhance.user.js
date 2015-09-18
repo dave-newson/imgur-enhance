@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imgur-enhance
 // @namespace    http://davenewson.com/
-// @version      0.0.3
+// @version      0.0.5
 // @description  Enhance Imgur with some hacked in user features because we're impatient people
 // @author       Dave Newson
 // @include      *://imgur.com
@@ -1235,7 +1235,7 @@ ImgurEnhance.StyleSheet = {
             }
 
             // Remove item if it's in the folder
-            var index = _.findIndex(folder, { h: img.h });
+            var index = _.findIndex(folder.images, { h: img.h });
             if (index > -1) {
                 folder.images.splice(index, 1);
             }
@@ -1703,7 +1703,7 @@ ImgurEnhance.StyleSheet = {
 
         showRemoveImageIcon: function showRemoveImageIcon(img) {
             if (this.state.folderEdit) {
-                return React.createElement('div', { className: 'icon-remove', onClick: this.removeImage.bind(this, img) });
+                return React.createElement('a', { href: 'javascript:;', className: 'icon-remove', onClick: this.removeImage.bind(this, img) });
             }
         },
 
@@ -1886,6 +1886,25 @@ ImgurEnhance.StyleSheet = {
         return;
     }
 
+    // Observe: GalleryItem
+    Destiny.watchAndPatch(window, 'Imgur.Gallery', {
+        handleResponse: function handleResponse() {
+            var args = Array.prototype.slice.call(arguments);
+            var parent = args.shift();
+
+            // Run original parent cleanly
+            var ret = parent.call(this, args);
+
+            // Apply seent
+            var $src = $(this._.el.outside.content);
+            var seent = ImgurEnhance.Seent.getInstance();
+            seent.attachGallerySeent($src);
+            seent.updateSeent();
+
+            return ret;
+        }
+    });
+
     /**
      * Feature: Seent
      * Adds a "seen it" feature, modifying the display for items you have seen before.
@@ -1930,7 +1949,7 @@ ImgurEnhance.StyleSheet = {
 
             // Seent tasks: Prune old, read page, attach display
             this.readSeent();
-            this.attachGallerySeent();
+            this.attachGallerySeent($('body'));
             this.attachInsideGallerySeent();
             this.updateSeent();
 
@@ -1995,11 +2014,6 @@ ImgurEnhance.StyleSheet = {
                 $(this).addClass('seent');
             });
 
-            // Event: Scrollin' on the FP
-            Imgur.Gallery.getInstance()._.emitter.on('new gallery page', this, function () {
-                this.attachGallerySeent();
-            });
-
             // Event: Changing view image
             Imgur.Gallery.getInstance()._.emitter.on('current image updated', this, function () {
                 this.readSeent();
@@ -2033,12 +2047,13 @@ ImgurEnhance.StyleSheet = {
         /**
          * Attach Seent elements to gallery
          * Note: May be called multiple times
+         * @param {object} $source
          */
-        attachGallerySeent: function attachGallerySeent() {
+        attachGallerySeent: function attachGallerySeent($source) {
             var _this = this;
 
             // On Load: Attach seen styles on FP
-            $('.post').not('[data-seent]').each(function () {
+            $source.find('.post').not('[data-seent]').each(function () {
                 var $post = $(this);
 
                 // Check each date block
@@ -2363,9 +2378,9 @@ ImgurEnhance.StyleSheet = {
         getIcon: function getIcon() {
 
             var icon = [];
-            icon.push(React.createElement('span', { className: 'icon-seent' }));
+            icon.push(React.createElement('span', { key: 1, className: 'icon-seent' }));
             if (this.state.mode == 2) {
-                icon.push(React.createElement('span', { className: 'icon-block' }));
+                icon.push(React.createElement('span', { key: 2, className: 'icon-block' }));
             }
             return icon;
         },
